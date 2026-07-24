@@ -1,6 +1,10 @@
+import 'package:edu_guardian_app/core/router/app_routes.dart';
 import 'package:edu_guardian_app/core/widgets/buttons/primary_button.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_sizes.dart';
+import '../widgets/academic_widgets.dart';
+
 
 class AcademicPerformanceScreen extends StatelessWidget {
   const AcademicPerformanceScreen({super.key});
@@ -30,11 +34,30 @@ class AcademicPerformanceScreen extends StatelessWidget {
             FittedBox(
               child: Row(
                 children: [
-                  _buildDropdown('Class', theme),
+                  AcademicFilterDropdown(
+                    initialLabel: 'Class',
+                    items: const ['JSS 1', 'JSS 2', 'JSS 3', 'SSS 1', 'SSS 2', 'SSS 3'],
+                    onSelected: (val) {
+                      // TODO: Handle class filter
+                    },
+                  ),
                   const SizedBox(width: Sizes.spaceS),
-                  _buildDropdown('Term', theme),
+                  AcademicFilterDropdown(
+                    initialLabel: 'Term',
+                    isBlueText: true, // This triggers the dark blue text from the design
+                    items: const ['1st Term', '2nd Term', '3rd Term'],
+                    onSelected: (val) {
+                      // TODO: Handle term filter
+                    },
+                  ),
                   const SizedBox(width: Sizes.spaceS),
-                  _buildDropdown('Subject', theme),
+                  AcademicFilterDropdown(
+                    initialLabel: 'Subject',
+                    items: const ['Mathematics', 'English Language', 'Chemistry', 'Physics', 'Business Studies', 'Accounting'],
+                    onSelected: (val) {
+                      // TODO: Handle subject filter
+                    },
+                  ),
                 ],
               ),
             ),
@@ -55,21 +78,10 @@ class AcademicPerformanceScreen extends StatelessWidget {
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(Sizes.paddingL),
         // USE YOUR CUSTOM PrimaryButton HERE
-        child: PrimaryButton(label: 'Request a meeting with teacher', onPressed: (){},)
-      ),
-    );
-  }
-
-  Widget _buildDropdown(String label, ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: Sizes.paddingSm, vertical: Sizes.paddingXS),
-      decoration: BoxDecoration(color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(Sizes.radiusCircular)),
-      child: Row(
-        children: [
-          Text(label, style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w600)),
-          const SizedBox(width: Sizes.spaceXS),
-          Icon(Icons.keyboard_arrow_down, size: 16, color: theme.colorScheme.primary),
-        ],
+        child: PrimaryButton(
+        label: 'Request a meeting with teacher', 
+        onPressed: ()=> context.push(AppRoutes.requestMeeting),
+        )
       ),
     );
   }

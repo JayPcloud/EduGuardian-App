@@ -70,7 +70,7 @@ class SettingsScreen extends StatelessWidget {
                     icon: LucideIcons.logOut,
                     title: 'Log out & switch role',
                     isDestructive: true,
-                    onTap: () {},
+                    onTap: ()=>context.go(AppRoutes.login),
                   ),
                 ],
               ),

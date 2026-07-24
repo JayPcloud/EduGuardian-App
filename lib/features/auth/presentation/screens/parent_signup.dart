@@ -1,12 +1,12 @@
 import 'package:edu_guardian_app/core/widgets/buttons/primary_button.dart';
 import 'package:edu_guardian_app/features/auth/presentation/screens/child_selection_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../widgets/parent_signup_flow/activation_step.dart';
 import '../widgets/parent_signup_flow/preferences_step.dart';
 import '../widgets/parent_signup_flow/secure_step.dart';
 import '../widgets/parent_signup_flow/verification_step.dart';
-
 
 class ParentSignupFlowScreen extends StatefulWidget {
   const ParentSignupFlowScreen({super.key});
@@ -54,6 +54,8 @@ class _ParentSignupFlowScreenState extends State<ParentSignupFlowScreen> {
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
+    }else{
+      context.pop();
     }
   }
 

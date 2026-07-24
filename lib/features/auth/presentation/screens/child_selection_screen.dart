@@ -1,8 +1,10 @@
 
 import 'package:edu_guardian_app/core/widgets/buttons/primary_button.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_sizes.dart';
+import '../../../../core/router/app_routes.dart';
 import '../../../../core/widgets/containers/selection_tile.dart';
 
 class ChildSelectionScreen extends StatefulWidget {
@@ -76,7 +78,7 @@ class _ChildSelectionScreenState extends State<ChildSelectionScreen> {
         padding: const EdgeInsets.all(Sizes.paddingL),
         child: PrimaryButton(
           label: 'Continue',
-          onPressed: (){},
+          onPressed: ()=>context.go(AppRoutes.home),
           ),
       ),
     );

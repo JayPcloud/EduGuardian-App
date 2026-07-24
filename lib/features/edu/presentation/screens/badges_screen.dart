@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../widgets/badges_widgets.dart';
@@ -14,7 +15,10 @@ class BadgesScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        leading: const Icon(Icons.arrow_back_ios, size: 18),
+        leading: InkWell(
+          onTap: ()=>context.pop(),
+          borderRadius: BorderRadius.circular(50),
+          child: const Icon(Icons.arrow_back_ios, size: 18)),
         title: Text('Badges', style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700, color: colorScheme.onPrimaryContainer)),
       ),
       body: SingleChildScrollView(

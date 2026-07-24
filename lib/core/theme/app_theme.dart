@@ -16,9 +16,11 @@ class AppTheme {
         textTheme: AppTypography.textTheme,
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.transparent,
-          foregroundColor: AppColors.onBackground,
+          foregroundColor: AppColors.primaryDark,
+          surfaceTintColor: Colors.transparent,
           centerTitle: false,
           elevation: 0,
+          
         ),
         floatingActionButtonTheme: const FloatingActionButtonThemeData(
           backgroundColor: AppColors.yellowAccent,

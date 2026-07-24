@@ -115,61 +115,118 @@ class AttendanceCalendarGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final daysOfWeek = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-    
-    // Hardcoded color map to match the exact red & orange alert days in your screenshot
-    final alertDays = {
-      4:  Colors.pink,  // Solid Red
-      5: const Color(0xFFFF9800),  // Solid Orange
-      18:  Colors.pink, // Solid Red
-      21: const Color(0xFFFF9800), // Solid Orange
-      29:  Colors.pink, // Solid Red
-      31: const Color(0xFFFF9800), // Solid Orange
-    };
 
     return Container(
       padding: const EdgeInsets.all(Sizes.paddingL),
       decoration: BoxDecoration(
         color: theme.cardColor,
-        border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.5)),
+        border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
         borderRadius: BorderRadius.circular(Sizes.radiusXL),
       ),
       child: Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: daysOfWeek.map((d) => Text(d, style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w700, color: theme.colorScheme.outlineVariant))).toList(),
+            children: daysOfWeek.map((d) => Text(
+              d, 
+              style: theme.textTheme.labelSmall?.copyWith(
+                fontWeight: FontWeight.w700, 
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6) // Faded matching the design
+              )
+            )).toList(),
           ),
           const SizedBox(height: Sizes.spaceM),
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            gridDelegate:  SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 7,
               mainAxisSpacing: 8,
               crossAxisSpacing: 8,
+              mainAxisExtent: 45, // Fixed height guarantees the text and dot never overflow vertically
             ),
-            itemCount: 31,
+            itemCount: 35, 
             itemBuilder: (context, index) {
-              final day = index + 1;
-              final alertColor = alertDays[day];
-              final isGreenText = !alertDays.containsKey(day);
+              if (index < 4) return const SizedBox.shrink();
+
+              final day = index - 3;
+              Color bgColor;
+              Color textColor;
+              bool hasDot = true;
+
+              if ([6, 7, 13, 14, 20, 21, 27, 28].contains(day)) {
+                bgColor = theme.colorScheme.primaryContainer.withValues(alpha: 0.2);
+                textColor = theme.colorScheme.outlineVariant;
+                hasDot = false;
+              } else if (day == 4 || day == 29) {
+                bgColor = const Color(0xFFFFF8E1); 
+                textColor = const Color(0xFFFF9800); 
+              } else {
+                bgColor = const Color(0xFFE8F5E9); 
+                textColor = const Color(0xFF00BFA5); 
+              }
 
               return Container(
                 decoration: BoxDecoration(
-                  color: alertColor ?? const Color(0xFFE8F5E9).withValues(alpha: 0.5), // Soft green default bg
+                  color: bgColor,
                   borderRadius: BorderRadius.circular(Sizes.radiusS),
                 ),
-                child: Center(
-                  child: Text(
-                    '$day',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: alertColor != null ? Colors.white : const Color(0xFF2E7D69), // White text on red/orange, green text otherwise
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '$day',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: textColor,
+                      ),
                     ),
-                  ),
+                    if (hasDot) ...[
+                      const SizedBox(height: 2),
+                      Container(
+                        width: 4,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: textColor,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ]
+                  ],
                 ),
               );
             },
+          ),
+          
+                   
+        ],
+      ),
+    );
+  }
+
+  static Widget buildLegendItem(String label, Color color, ThemeData theme) {
+    return Flexible(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.outlineVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),

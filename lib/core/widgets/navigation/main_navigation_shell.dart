@@ -1,3 +1,4 @@
+import 'package:edu_guardian_app/core/constants/app_assets.dart';
 import 'package:flutter/material.dart';
 import '../../constants/app_sizes.dart';
 
@@ -39,18 +40,18 @@ class MainNavigationShell extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            _buildNavItem(0, Icons.home_filled, 'Home', theme),
-            _buildNavItem(1, Icons.menu_book_rounded, 'Academic', theme),
-            _buildNavItem(2, Icons.cases_rounded, 'Attendance', theme),
-            _buildNavItem(3, Icons.workspace_premium_rounded, 'Badges', theme),
-            _buildNavItem(4, Icons.grid_view_rounded, 'Settings', theme),
+            _buildNavItem(0, [AppAssets.homeNav, AppAssets.homeGreyNav], 'Home', theme),
+            _buildNavItem(1, [AppAssets.academicNav, AppAssets.academicGreyNav], 'Academic', theme),
+            _buildNavItem(2, [AppAssets.attendanceNav, AppAssets.attendanceGreyNav], 'Attendance', theme),
+            _buildNavItem(3, [AppAssets.chatNav, AppAssets.chatGreyNav], 'Message', theme),
+            _buildNavItem(4, [AppAssets.moreNav, AppAssets.moreGreyNav], 'More', theme),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildNavItem(int index, IconData icon, String label, ThemeData theme) {
+  Widget _buildNavItem(int index, List<String> assets, String label, ThemeData theme) {
     final isSelected = currentIndex == index;
     final color = isSelected ? theme.colorScheme.onPrimaryContainer : theme.colorScheme.outlineVariant;
 
@@ -63,11 +64,15 @@ class MainNavigationShell extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            Icon(
-              icon,
-              color: color,
-              size: isSelected ? 26 : 24,
+            Image.asset(
+              isSelected?assets[0]:assets[1],
+              height: isSelected ? 26 : 24,
             ),
+            // Icon(
+            //   icon,
+            //   color: color,
+            //   size: isSelected ? 26 : 24,
+            // ),
             const SizedBox(height: Sizes.spaceXS),
             Text(
               label,

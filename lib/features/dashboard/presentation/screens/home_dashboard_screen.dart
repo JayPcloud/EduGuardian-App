@@ -4,7 +4,6 @@ import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-
 import '../widgets/ai_insight_card.dart';
 import '../widgets/dashboard_action_card.dart';
 import '../widgets/dashboard_stat_card.dart';
