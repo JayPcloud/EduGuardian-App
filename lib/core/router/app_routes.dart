@@ -3,6 +3,9 @@ class AppRoutes {
   static const String loadingPage = '/loading';
   static const String login = '/login';
   static const String signup = '/signup';
+  static const String forgotPassword = '/forgot-password';
+  static const String otpVerification = '/verify-otp';
+  static const String newPassword = '/new-password';
   
   // Main Navigation (Bottom Nav)
   static const String home = '/home';
@@ -31,6 +34,8 @@ class AppRoutes {
 
   //Notifications
   static const String alerts = '/alerts';
+
+  
 
   
   

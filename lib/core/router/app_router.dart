@@ -1,4 +1,6 @@
+import 'package:edu_guardian_app/features/auth/presentation/screens/forgot_password_screen.dart';
 import 'package:edu_guardian_app/features/auth/presentation/screens/login_screen.dart';
+import 'package:edu_guardian_app/features/auth/presentation/screens/otp_verification_screen.dart';
 import 'package:edu_guardian_app/features/auth/presentation/screens/parent_signup.dart';
 import 'package:edu_guardian_app/features/edu/presentation/screens/growth_activities_screen.dart';
 import 'package:edu_guardian_app/features/edu/presentation/screens/meeting_requested_success_screen.dart';
@@ -14,6 +16,7 @@ import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 // Screens and Shell
+import '../../features/auth/presentation/screens/new_password_screen.dart';
 import '../../features/dashboard/presentation/screens/behaviour_screen.dart';
 import '../../features/dashboard/presentation/screens/home_dashboard_screen.dart';
 import '../../features/edu/presentation/screens/academic_preformance_screen.dart';
@@ -24,7 +27,6 @@ import '../../features/profile/presentation/screens/change_password_screen.dart'
 import '../widgets/navigation/main_navigation_shell.dart';
 import 'app_routes.dart';
 
-
 part 'app_router.g.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -34,7 +36,7 @@ final GlobalKey<NavigatorState> shellNavigatorKey = GlobalKey<NavigatorState>();
 GoRouter router(Ref ref) {
   return GoRouter(
     navigatorKey: rootNavigatorKey,
-    initialLocation: AppRoutes.home, 
+    initialLocation: AppRoutes.login, 
     debugLogDiagnostics: true,
     
     // TODO: Add back auth redirect logic here later
@@ -99,6 +101,24 @@ GoRouter router(Ref ref) {
         name: 'login',
         parentNavigatorKey: rootNavigatorKey, 
         builder: (context, state) => const LoginScreen(), 
+      ),
+      GoRoute(
+        path: AppRoutes.forgotPassword,
+        name: 'forgot-password',
+        parentNavigatorKey: rootNavigatorKey, 
+        builder: (context, state) => const ForgotPasswordScreen(), 
+      ),
+      GoRoute(
+        path: AppRoutes.otpVerification,
+        name: 'verify-otp',
+        parentNavigatorKey: rootNavigatorKey, 
+        builder: (context, state) => const OtpVerificationScreen(), 
+      ),
+      GoRoute(
+        path: AppRoutes.newPassword,
+        name: 'new-password',
+        parentNavigatorKey: rootNavigatorKey, 
+        builder: (context, state) => const NewPasswordScreen(), 
       ),
 
       //Dashboard Routes
@@ -202,3 +222,5 @@ void _onTabTapped(BuildContext context, int index) {
       break;
   }
 }
+
+

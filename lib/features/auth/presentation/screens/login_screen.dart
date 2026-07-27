@@ -171,7 +171,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   child: Text(
                                     'Remember me',
                                     style: textTheme.labelMedium?.copyWith(
-                                      color: AppColors.primary,
+                                      color: colorScheme.primary,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -179,7 +179,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ],
                             ),
                             InkWell(
-                              onTap: () => context.push(AppRoutes.login),
+                              onTap: () => context.push(AppRoutes.forgotPassword),
                               child: Text(
                                 'Forgot password ?',
                                 style: textTheme.labelMedium?.copyWith(
@@ -237,55 +237,5 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   // Extracted Label Builder
-  Widget _buildLabel(String text, TextTheme textTheme, Color primaryColor) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: Sizes.spaceXS),
-      child: Text(
-        text,
-        style: textTheme.labelMedium?.copyWith(
-          color: primaryColor,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-
-  // Extracted TextField Builder
-  Widget _buildTextField({
-    required String hint,
-    required IconData icon,
-    bool isPassword = false,
-    required ColorScheme colorScheme,
-    required ThemeData theme,
-  }) {
-    return TextField(
-      obscureText: isPassword,
-      style: theme.textTheme.bodyMedium,
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: theme.textTheme.bodyMedium?.copyWith(
-          color: colorScheme.outlineVariant,
-        ),
-        prefixIcon: Icon(icon, color: colorScheme.outlineVariant, size: 20),
-        filled: true,
-        fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: Sizes.paddingM,
-          vertical: Sizes.paddingM,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(Sizes.radiusXL),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(Sizes.radiusXL),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(Sizes.radiusXL),
-          borderSide: BorderSide(color: colorScheme.primary),
-        ),
-      ),
-    );
-  }
+ 
 }

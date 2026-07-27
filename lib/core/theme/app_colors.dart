@@ -67,7 +67,8 @@ class AppColors {
   static const Color onError = Colors.white;
 
   static const Color amber = Colors.amber;
-  static const Color success = Color(0xFF10B981);
+  static const Color success = Color(0xFF02A593);
+  //static const Color success = Color(0xFF10B981);
 
   // Social media colors
   static const Color google = Color(0xFF4285F4);
