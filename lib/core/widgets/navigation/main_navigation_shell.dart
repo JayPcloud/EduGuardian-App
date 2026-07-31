@@ -1,8 +1,10 @@
 import 'package:edu_guardian_app/core/constants/app_assets.dart';
+import 'package:edu_guardian_app/shared_features/auth/presentation/providers/role_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../constants/app_sizes.dart';
 
-class MainNavigationShell extends StatelessWidget {
+class MainNavigationShell extends ConsumerWidget {
   final Widget child;
   final int currentIndex;
   final Function(int) onTabChanged;
@@ -15,9 +17,9 @@ class MainNavigationShell extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-
+    final isTeacher = ref.read(roleProvider)==UserRole.teacher;
     return Scaffold(
       body: child,
       bottomNavigationBar: Container(
@@ -41,10 +43,10 @@ class MainNavigationShell extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             _buildNavItem(0, [AppAssets.homeNav, AppAssets.homeGreyNav], 'Home', theme),
-            _buildNavItem(1, [AppAssets.academicNav, AppAssets.academicGreyNav], 'Academic', theme),
+            _buildNavItem(1, [AppAssets.academicNav, AppAssets.academicGreyNav], isTeacher?'Classes':'Academic', theme),
             _buildNavItem(2, [AppAssets.attendanceNav, AppAssets.attendanceGreyNav], 'Attendance', theme),
             _buildNavItem(3, [AppAssets.chatNav, AppAssets.chatGreyNav], 'Message', theme),
-            _buildNavItem(4, [AppAssets.moreNav, AppAssets.moreGreyNav], 'More', theme),
+            _buildNavItem(4, [AppAssets.moreNav, AppAssets.moreGreyNav], isTeacher?'Profile':'More', theme),
           ],
         ),
       ),

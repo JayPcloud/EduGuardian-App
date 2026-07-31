@@ -91,6 +91,7 @@ class SuccessDialog extends StatelessWidget {
               label: buttonText,
               onPressed: onButtonPressed, 
               isLoading: false,
+              trailingIcon: null,
             ),
           ],
         ),

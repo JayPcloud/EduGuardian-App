@@ -14,6 +14,7 @@ class AppAssets {
   // static const String whatsappIconSvg = 'assets/icons/whatsapp-color.svg';
   // static const String googleLogoSvg = 'assets/logos/google-original.svg';
   static const String appLogoSvg = 'assets/logos/app_logo.svg';
+  static const String appLogoWhiteBg = 'assets/logos/app_logo_white_bg.svg';
   // static const String appLogoWithTextSvg = 'assets/logos/app_logo_with_text.svg';
   // static const String appLogoWithTextSvgDarkMode = 'assets/logos/app_logo_with_white_text.svg';
 

@@ -14,7 +14,7 @@ class OutlinedBorderButton extends StatelessWidget {
     final colorScheme = theme.colorScheme;
     
     return OutlinedButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: onPressed,
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 56),
                   side: BorderSide(color: colorScheme.outline),
