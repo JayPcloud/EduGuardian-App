@@ -1,10 +1,13 @@
 import 'package:edu_guardian_app/shared_features/auth/presentation/providers/role_provider.dart';
 import 'package:edu_guardian_app/shared_features/auth/presentation/screens/select_role_screen.dart';
+import 'package:edu_guardian_app/shared_features/auth/presentation/screens/setup_2FA_screen.dart';
 import 'package:edu_guardian_app/shared_features/auth/presentation/screens/teachers_signup_screen.dart';
 import 'package:edu_guardian_app/teachers_features/dashboard/presentation/screens/teacher_dashboard_screen.dart';
 import 'package:edu_guardian_app/teachers_features/edu/presentation/screens/attendance_screen.dart';
+import 'package:edu_guardian_app/teachers_features/edu/presentation/screens/class_management_screen.dart';
 import 'package:edu_guardian_app/teachers_features/edu/presentation/screens/my_classes_screen.dart';
 import 'package:edu_guardian_app/teachers_features/edu/presentation/screens/result_entry_screen.dart';
+import 'package:edu_guardian_app/teachers_features/edu/presentation/screens/student_profile_screen.dart';
 import 'package:edu_guardian_app/teachers_features/edu/presentation/screens/timetable_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -88,7 +91,7 @@ GoRouter router(Ref ref) {
           GoRoute(
             path: AppRoutes.teachersProfile,
             name: 'teacher-profile',
-            builder: (context, state) => const Scaffold(), // Placeholder
+            builder: (context, state) => const SettingsScreen(), // Placeholder
           ),
         ]
         :[
@@ -171,6 +174,12 @@ GoRouter router(Ref ref) {
         parentNavigatorKey: rootNavigatorKey, 
         builder: (context, state) => const NewPasswordScreen(), 
       ),
+      GoRoute(
+        path: AppRoutes.setup2FA,
+        name: '2FA',
+        parentNavigatorKey: rootNavigatorKey, 
+        builder: (context, state) => const SetUp2FAScreen(), 
+      ),
 
       //Dashboard Routes
       GoRoute(
@@ -211,6 +220,18 @@ GoRouter router(Ref ref) {
         name: 'result-entry',
         parentNavigatorKey: rootNavigatorKey, 
         builder: (context, state) => const ResultEntryScreen(), 
+      ),
+      GoRoute(
+        path: AppRoutes.classManagement,
+        name: 'class-management',
+        parentNavigatorKey: rootNavigatorKey, 
+        builder: (context, state) => const ClassManagementScreen(), 
+      ),
+      GoRoute(
+        path: AppRoutes.studentProfileScreen,
+        name: 'student-profile',
+        parentNavigatorKey: rootNavigatorKey, 
+        builder: (context, state) => const StudentProfileScreen(), 
       ),
 
 

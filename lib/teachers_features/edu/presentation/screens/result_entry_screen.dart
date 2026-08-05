@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/widgets/buttons/primary_button.dart';
+import '../../../../core/widgets/common/success_dialog.dart';
 import '../widgets/academic_components.dart';
 import '../widgets/attendance_components.dart';
 
@@ -143,9 +145,13 @@ class ResultEntryScreen extends StatelessWidget {
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () {
-                      // TODO: Handle Save
-                    },
+                    onPressed: ()=> SuccessDialog.show(
+                      context, 
+                      title: 'Submitted for Approval', 
+                      buttonText: 'Done', 
+                      message: 'Your result sheet has been forwarded to the Head of department for review', 
+                      onButtonPressed:()=>context.pop()
+                      ),
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(0, 56),
                       side: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
@@ -164,9 +170,13 @@ class ResultEntryScreen extends StatelessWidget {
                 Expanded(
                   child: PrimaryButton(
                     label: 'Submit',
-                    onPressed: () {
-                      // TODO: Handle submit
-                    },
+                    onPressed: ()=> SuccessDialog.show(
+                      context, 
+                      title: 'Scores Saved', 
+                      buttonText: 'Done', 
+                      message: '10 student records for JSS 3A have been saved', 
+                      onButtonPressed:()=>context.pop()
+                      ),
                   ),
                 ),
               ],

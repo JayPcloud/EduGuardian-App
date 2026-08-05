@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_sizes.dart';
+import '../../../../core/widgets/containers/attendance_calendar_grid.dart';
 import '../widgets/attendance_widgets.dart';
 
 class ParentsAttendanceScreen extends StatelessWidget {
@@ -29,23 +30,10 @@ class ParentsAttendanceScreen extends StatelessWidget {
             const AttendanceRateBanner(),
             const SizedBox(height: Sizes.spaceL),
             const AttendanceStatPillsRow(),
-            const SizedBox(height: Sizes.spaceXL),
-            Text('May 2026', style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(height: Sizes.spaceXXL),
+            Text('Attendance Calendar', style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
             const SizedBox(height: Sizes.spaceM),
-            const AttendanceCalendarGrid(),
-            const SizedBox(height: Sizes.spaceM),
-            Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              AttendanceCalendarGrid.buildLegendItem('Present', const Color(0xFF00BFA5), theme),
-              const SizedBox(width: Sizes.spaceM),
-              AttendanceCalendarGrid.buildLegendItem('Late', const Color(0xFFFF9800), theme),
-              const SizedBox(width: Sizes.spaceM),
-              AttendanceCalendarGrid.buildLegendItem('Absent', const Color(0xFFE53935), theme),
-              const SizedBox(width: Sizes.spaceM),
-              AttendanceCalendarGrid.buildLegendItem('Excused', const Color(0xFF1E88E5), theme),
-            ],
-                      ),
+            const AttendanceCalendarGrid(),            
             const SizedBox(height: Sizes.spaceXL),
           ],
         ),

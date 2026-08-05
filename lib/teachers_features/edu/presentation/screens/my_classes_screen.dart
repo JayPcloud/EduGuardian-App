@@ -1,5 +1,6 @@
-import 'package:edu_guardian_app/core/constants/spacing_style.dart';
+import 'package:edu_guardian_app/core/router/app_routes.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/constants/app_sizes.dart';
 
@@ -45,7 +46,10 @@ class MyClassesScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: Sizes.paddingL),
               itemCount: 4,
               itemBuilder: (context, index) {
-                return _buildClassCard(theme);
+                return _buildClassCard(
+                  theme,
+                  onTap: ()=>context.push(AppRoutes.classManagement)
+                  );
               },
             ),
           ),
@@ -54,10 +58,10 @@ class MyClassesScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildClassCard(ThemeData theme) {
-    return InkWell(
-      borderRadius: AppSpacingStyle.allBorderRdL,
-      // onTap: (){},
+  Widget _buildClassCard(ThemeData theme, {VoidCallback? onTap}) {
+    return GestureDetector(
+      // borderRadius: AppSpacingStyle.allBorderRdL,
+      onTap: onTap,
       child: Container(
         margin: const EdgeInsets.only(bottom: Sizes.spaceM),
         padding: const EdgeInsets.all(Sizes.paddingL),
@@ -99,7 +103,7 @@ class MyClassesScreen extends StatelessWidget {
                     children: [
                       Icon(LucideIcons.users, size: 14, color: theme.colorScheme.outlineVariant),
                       const SizedBox(width: 4),
-                      Text('32 students   Room 202', style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.outlineVariant)),
+                      Flexible(child: Text('32 students   Room 202',style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.outlineVariant))),
                     ],
                   ),
                   const SizedBox(height: 8),

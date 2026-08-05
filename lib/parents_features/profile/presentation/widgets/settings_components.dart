@@ -3,12 +3,98 @@ import '../../../../core/constants/app_sizes.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 // --- PROFILE HERO CARD ---
+
 class ProfileHeroCard extends StatelessWidget {
-  const ProfileHeroCard({super.key});
+  final bool isTeacher;
+
+  const ProfileHeroCard({
+    super.key,
+    this.isTeacher = false, // Defaults to Parent view
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    // ==========================================
+    // TEACHER LAYOUT 
+    // ==========================================
+    if (isTeacher) {
+      return Container(
+        clipBehavior: Clip.hardEdge,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(Sizes.radiusXL),
+          // Deep blue gradient matching the screenshot
+          gradient: LinearGradient(colors: [theme.colorScheme.primary, theme.colorScheme.tertiary])
+      
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(Sizes.paddingL), 
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const CircleAvatar(
+                radius: 36, 
+                backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=11'),
+              ),
+              const SizedBox(width: Sizes.spaceM),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Mr. John Adekunle', 
+                      style: theme.textTheme.titleLarge?.copyWith(color: theme.colorScheme.onPrimary,),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Science', 
+                      style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onPrimary.withValues(alpha: 0.9)),
+                    ),
+                    const SizedBox(height: Sizes.spaceL),
+                    FittedBox(
+                      child: Row(
+                        children: [
+                          Column(
+                            children: [
+                              Text(
+                                '5', 
+                                style: theme.textTheme.headlineMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w600),
+                              ),
+                              Text(
+                                'Classes', 
+                                style: theme.textTheme.labelMedium?.copyWith(color: Colors.white.withValues(alpha: 0.9)),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(width: Sizes.spaceXXL),
+                          Column(
+                            children: [
+                              Text(
+                                '2', 
+                                style: theme.textTheme.headlineMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w600),
+                              ),
+                              Text(
+                                'Subjects', 
+                                style: theme.textTheme.labelMedium?.copyWith(color: Colors.white.withValues(alpha: 0.9)),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // ==========================================
+    // ORIGINAL PARENT LAYOUT
+    // ==========================================
     return Container(
       clipBehavior: Clip.hardEdge,
       decoration: BoxDecoration(
@@ -19,24 +105,35 @@ class ProfileHeroCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: Sizes.paddingM, vertical: Sizes.paddingL),
         child: Row(
           children: [
-            CircleAvatar(radius: 24, backgroundColor: Colors.white24, child: const Text('E', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18))),
+            const CircleAvatar(
+              radius: 24, 
+              backgroundColor: Colors.white24, 
+              child: Text('E', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+            ),
             const SizedBox(width: Sizes.spaceM),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Mrs. Okafor', style: theme.textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w600)),
+                  Text(
+                    'Mrs. Okafor', 
+                    style: theme.textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w600),
+                  ),
                   const SizedBox(height: 2),
-                  Text('Parent  ·  3 students linked', style: theme.textTheme.labelSmall?.copyWith(color: Colors.white70)),
+                  Text(
+                    'Parent  ·  3 students linked', 
+                    style: theme.textTheme.labelSmall?.copyWith(color: Colors.white70),
+                  ),
                 ],
               ),
             ),
             IconButton(
               onPressed: () {},
-              icon: CircleAvatar(
+              icon: const CircleAvatar(
                 radius: Sizes.radiusL,
                 backgroundColor: Colors.white24,
-                child: const Icon(LucideIcons.bell, color: Colors.white, size: Sizes.iconS)),
+                child: Icon(LucideIcons.bell, color: Colors.white, size: Sizes.iconS),
+              ),
             )
           ],
         ),
@@ -110,11 +207,11 @@ class SettingsHeroCard extends StatelessWidget {
 class SettingsSwitchTile extends StatelessWidget {
   final IconData icon;
   final String title;
-  final String subtitle;
+  final String? subtitle;
   final bool value;
   final ValueChanged<bool> onChanged;
 
-  const SettingsSwitchTile({super.key, required this.icon, required this.title, required this.subtitle, required this.value, required this.onChanged});
+  const SettingsSwitchTile({super.key, required this.icon, required this.title, this.subtitle, required this.value, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -123,14 +220,16 @@ class SettingsSwitchTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: Sizes.paddingM, vertical: Sizes.paddingS),
       child: Row(
         children: [
-          Icon(icon, color: theme.colorScheme.outlineVariant, size: 20),
+          CircleAvatar(
+            backgroundColor: theme.colorScheme.surfaceContainer.withValues(alpha: 0.4),
+            child: Icon(icon, color: theme.colorScheme.outlineVariant, size: 20)),
           const SizedBox(width: Sizes.spaceM),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-                Text(subtitle, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.outlineVariant)),
+                if(subtitle!=null)Text(subtitle!, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.outlineVariant)),
               ],
             ),
           ),
@@ -149,10 +248,11 @@ class SettingsSwitchTile extends StatelessWidget {
 class SettingsActionTile extends StatelessWidget {
   final IconData icon;
   final String title;
+  final String? subtitle;
   final VoidCallback onTap;
   final bool isDestructive;
 
-  const SettingsActionTile({super.key, required this.icon, required this.title, required this.onTap, this.isDestructive = false});
+  const SettingsActionTile({super.key, required this.icon, required this.title, this.subtitle, required this.onTap, this.isDestructive = false});
 
   @override
   Widget build(BuildContext context) {
@@ -166,9 +266,20 @@ class SettingsActionTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: Sizes.paddingM, vertical: Sizes.paddingM),
         child: Row(
           children: [
-            Icon(icon, color: color, size: 20),
+            
+            CircleAvatar(
+              backgroundColor: isDestructive?Colors.transparent: theme.colorScheme.surfaceContainer.withValues(alpha: 0.4),
+              child: Icon(icon, color: color, size: 20)),
             const SizedBox(width: Sizes.spaceM),
-            Expanded(child: Text(title, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600, color: textColor))),
+            Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600, color: textColor)),
+                if(subtitle!=null)Text(subtitle!, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.outlineVariant)),
+              ],
+            ),
+          ),
             Icon(Icons.arrow_forward_ios, size: 14, color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
           ],
         ),

@@ -6,6 +6,7 @@ class PrimaryButton extends StatelessWidget {
   const PrimaryButton({
     super.key,
     required this.label,
+    this.height,
     this.onPressed,
     this.trailingIcon = Icons.arrow_forward,
     this.isLoading = false,
@@ -13,6 +14,7 @@ class PrimaryButton extends StatelessWidget {
   });
 
   final String label;
+  final double? height;
   final VoidCallback? onPressed;
   final IconData? trailingIcon;
   final bool isLoading;
@@ -25,7 +27,7 @@ class PrimaryButton extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      height: 50,
+      height: height??50,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(Sizes.radiusXXL),
         gradient: enabled

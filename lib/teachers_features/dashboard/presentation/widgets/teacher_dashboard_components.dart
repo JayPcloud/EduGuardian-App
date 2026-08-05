@@ -77,7 +77,7 @@ class TeacherDashboardHeader extends StatelessWidget {
                     onTap: () =>context.push(AppRoutes.alerts),
                     customBorder: RoundedRectangleBorder(borderRadius: AppSpacingStyle.allBorderRdMd),
                     child: CircleAvatar(
-                      backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                      backgroundColor: theme.colorScheme.surface,
                       child: Badge(
                         backgroundColor: AppColors.yellowAccent,
                         child: Icon(LucideIcons.bell, size: Sizes.iconM, color: theme.colorScheme.onSurfaceVariant),

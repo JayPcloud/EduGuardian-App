@@ -77,6 +77,7 @@ class AppTheme {
     error: AppColors.error,
     onError: AppColors.onError,
     surface: AppColors.surface,
+    surfaceContainer: AppColors.strokes,
     onSurface: AppColors.onSurface,
     surfaceContainerHighest: AppColors.surface,
     onSurfaceVariant: AppColors.textPrimary,
