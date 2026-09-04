@@ -1,18 +1,88 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/widgets/buttons/primary_button.dart';
+import '../../../../core/widgets/buttons/outlined_border_button.dart';
 import '../../../../core/widgets/common/success_dialog.dart';
+import '../../../../core/widgets/common/warning_dialog.dart';
+import '../controllers/my_classes_providers.dart';
+import '../controllers/teacher_result_providers.dart';
 import '../widgets/academic_components.dart';
 import '../widgets/attendance_components.dart';
 
-class ResultEntryScreen extends StatelessWidget {
-  const ResultEntryScreen({super.key});
+
+class ResultEntryScreen extends ConsumerStatefulWidget {
+  const ResultEntryScreen({super.key, this.classId, this.armId, this.subjectId});
+  
+  final String? classId;
+  final String? armId;
+  final String? subjectId;
+
+  @override
+  ConsumerState<ResultEntryScreen> createState() => _ResultEntryScreenState();
+}
+
+class _ResultEntryScreenState extends ConsumerState<ResultEntryScreen> {
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() => ref.read(resultEntryControllerProvider.notifier).initializeFilters(
+      widget.classId, widget.armId, widget.subjectId
+    ));
+  }
+
+  void _checkBeforeSubmit() {
+    // 🚨 Clean: Ask the controller for the business logic result
+    final missingCount = ref.read(resultEntryControllerProvider.notifier).getMissingRecordsCount();
+
+    if (missingCount > 0) {
+      WarningDialog.show(
+        context,
+        title: 'Incomplete Records',
+        message: '$missingCount student(s) have missing scores. Are you sure you want to submit anyway?',
+        primaryButtonText: 'Yes, Submit',
+        secondaryButtonText: 'Cancel',
+        onPrimaryPressed: () {
+          Navigator.pop(context); // Close warning dialog
+          _handleSubmit(); // Proceed to submit
+        },
+      );
+    } else {
+      _handleSubmit(); // All clear, submit immediately
+    }
+  }
+  
+  Future<void> _handleSubmit() async {
+    setState(() => _isSubmitting = true);
+    try {
+      await ref.read(resultEntryControllerProvider.notifier).submitBulkResults();
+      if (mounted) {
+        SuccessDialog.show(
+          context, 
+          title: 'Scores Saved', 
+          buttonText: 'Done', 
+          message: 'Records have been successfully uploaded and saved.', 
+          onButtonPressed: () => context.pop(),
+        );
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+
+    final filter = ref.watch(resultFilterProvider);
+    final studentsAsync = ref.watch(resultEntryControllerProvider);
+    final configsAsync = ref.watch(resultConfigsProvider);
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -26,26 +96,15 @@ class ResultEntryScreen extends StatelessWidget {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Result Entry',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: colorScheme.onPrimaryContainer,
-              ),
-            ),
-            Text(
-              'First Term',
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: colorScheme.outlineVariant,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            Text('Result Entry', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700, color: colorScheme.onPrimaryContainer)),
+            Text('First Term', style: theme.textTheme.labelMedium?.copyWith(color: colorScheme.outlineVariant, fontWeight: FontWeight.w600)),
           ],
         ),
       ),
-      body: Column(
+      body: filter == null 
+        ? const Center(child: CircularProgressIndicator())
+        : Column(
         children: [
-          // Main Area
           Expanded(
             child: Column(
               children: [
@@ -53,17 +112,37 @@ class ResultEntryScreen extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: Sizes.paddingL, vertical: Sizes.spaceM),
                   child: Row(
-                    children: const [
+                    children: [
                       TeachersAttendanceFilterDropdown(
                         label: 'CLASS',
-                        initialValue: 'JSS 3A',
-                        items: ['JSS 1B', 'JSS 2C', 'SSS 1E', 'SSS 2C'],
+                        initialValue: filter.className,
+                        items: ref.watch(teacherClassesProvider).when(
+                            data: (data) => data.classes.map((c) => c.name).toList(), 
+                            error: (err, st)=>[], loading: ()=>[]),
+                        onSelected: (val) {
+                          final classes = ref.read(teacherClassesProvider).valueOrNull?.classes ?? [];
+                          final selectedCls = classes.firstWhere((c) => c.name == val);
+                          ref.read(resultFilterProvider.notifier).state = filter.copyWith(
+                            classId: selectedCls.id, className: selectedCls.name, classCategory: selectedCls.category,
+                            armId: selectedCls.arms.isNotEmpty ? selectedCls.arms.first.id : '',
+                            subjectName: selectedCls.subjects.isNotEmpty ? selectedCls.subjects.first.name : 'N/A',
+                            subjectId: selectedCls.subjects.isNotEmpty ? selectedCls.subjects.first.id : '',
+                          );
+                        },
                       ),
-                      SizedBox(width: Sizes.spaceM),
+                      const SizedBox(width: Sizes.spaceM),
                       TeachersAttendanceFilterDropdown(
                         label: 'SUBJECT',
-                        initialValue: 'Mathematics',
-                        items: ['Mathematics', 'Physics', 'English'],
+                        initialValue: filter.subjectName,
+                        items: ref.read(teacherClassesProvider).valueOrNull?.classes
+                            .firstWhere((c) => c.id == filter.classId, orElse: () => ref.read(teacherClassesProvider).value!.classes.first)
+                            .subjects.map((s) => s.name).toList() ?? [],
+                        onSelected: (val) {
+                          final classes = ref.read(teacherClassesProvider).valueOrNull?.classes ?? [];
+                          final currentCls = classes.firstWhere((c) => c.id == filter.classId);
+                          final subj = currentCls.subjects.firstWhere((s) => s.name == val);
+                          ref.read(resultFilterProvider.notifier).state = filter.copyWith(subjectName: subj.name, subjectId: subj.id);
+                        },
                       ),
                     ],
                   ),
@@ -75,51 +154,64 @@ class ResultEntryScreen extends StatelessWidget {
                     padding: const EdgeInsets.all(8.0),
                     child: Container(
                       decoration: BoxDecoration(
-                        border: Border.all(color: Theme.of(context).colorScheme.outline),
+                        border: Border.all(color: colorScheme.outline),
                         borderRadius: BorderRadius.circular(Sizes.radiusL),
                       ),
                       child: Column(
                         children: [
-                          // Fixed Header
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: Sizes.paddingL, vertical: Sizes.paddingS),
-                            decoration: BoxDecoration(
-                              color: colorScheme.primaryContainer.withValues(alpha: 0.6),
-                              borderRadius: const BorderRadius.only(
-                                topRight: Radius.circular(Sizes.radiusM),
-                                topLeft: Radius.circular(Sizes.radiusM),
+                          // 🚨 DYNAMIC HEADER based on API configs
+                          configsAsync.when(
+                            loading: () => const LinearProgressIndicator(),
+                            error: (e, s) => const SizedBox.shrink(),
+                            data: (configs) => Container(
+                              padding: const EdgeInsets.symmetric(horizontal: Sizes.paddingL, vertical: Sizes.paddingS),
+                              decoration: BoxDecoration(
+                                color: colorScheme.primaryContainer.withValues(alpha: 0.6),
+                                borderRadius: const BorderRadius.only(topRight: Radius.circular(Sizes.radiusM), topLeft: Radius.circular(Sizes.radiusM)),
                               ),
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(flex: 3, child: Text('STUDENT', style: _headerStyle(theme))),
-                                const SizedBox(width: Sizes.spaceS),
-                                Expanded(flex: 2, child: Text('CA', style: _headerStyle(theme))),
-                                const SizedBox(width: Sizes.spaceXS),
-                                Expanded(flex: 2, child: Text('AS', style: _headerStyle(theme))),
-                                const SizedBox(width: Sizes.spaceXS),
-                                Expanded(flex: 2, child: Text('EX', style: _headerStyle(theme))),
-                                const SizedBox(width: Sizes.spaceS),
-                                Expanded(flex: 1, child: Text('TOTAL', style: _headerStyle(theme), textAlign: TextAlign.center)),
-                              ],
+                              child: Row(
+                                children: [
+                                  Expanded(flex: 3, child: Text('STUDENTS', style: _headerStyle(theme))),
+                                  const SizedBox(width: Sizes.spaceS),
+                                  // Map configs to header columns
+                                  ...configs.map((config) {
+                                    final initials = config.assessmentType.replaceAll(RegExp(r'[^A-Z]'), ''); // e.g. "First CA" -> "FCA", "Exam" -> "E"
+                                    return Expanded(
+                                      flex: 2, 
+                                      child: Text(
+                                        initials.isEmpty ? config.assessmentType.substring(0, 2).toUpperCase() : initials, 
+                                        style: _headerStyle(theme)
+                                      )
+                                    );
+                                  }),
+                                  const SizedBox(width: Sizes.spaceS),
+                                  Expanded(flex: 1, child: Text('TOTAL', style: _headerStyle(theme), textAlign: TextAlign.center)),
+                                ],
+                              ),
                             ),
                           ),
                           
-                          // Scrollable Table List
+                          // 🚨 DYNAMIC Scrollable Table List
                           Expanded(
-                            child: ListView(
-                              padding: EdgeInsets.zero, // Keeps the first item flush against the header
-                              children: const [
-                                ResultEntryRow(name: 'Ifeoma Eze', studentId: 'EDU/JSS3A/001', caScore: '10', asScore: '25', exScore: '45', total: '80', grade: 'A', gradeColor: Color(0xFF1E88E5)),
-                                ResultEntryRow(name: 'Kunle Musa', studentId: 'EDU/JSS3A/001', caScore: '10', asScore: '25', exScore: '45', total: '77', grade: 'A', gradeColor: Color(0xFF1E88E5)),
-                                ResultEntryRow(name: 'Obinna Nw..', studentId: 'EDU/JSS3A/001', caScore: '10', asScore: '10', exScore: '20', total: '40', grade: 'E', gradeColor: Colors.purpleAccent),
-                                ResultEntryRow(name: 'Blessing Be..', studentId: 'EDU/JSS3A/001', caScore: '10', asScore: '25', exScore: '45', total: '77', grade: 'A', gradeColor: Color(0xFF1E88E5)),
-                                ResultEntryRow(name: 'Chioma Ed..', studentId: 'EDU/JSS3A/001', caScore: '05', asScore: '15', exScore: '45', total: '65', grade: 'B', gradeColor: Color(0xFF5E35B1)),
-                                ResultEntryRow(name: 'Sarah Edwa..', studentId: 'EDU/JSS3A/001', caScore: '05', asScore: '05', exScore: '10', total: '20', grade: 'F', gradeColor: Color(0xFFE53935)),
-                                ResultEntryRow(name: 'Sarah Edwa..', studentId: 'EDU/JSS3A/001', caScore: '05', asScore: '05', exScore: '10', total: '20', grade: 'F', gradeColor: Color(0xFFE53935)),
-                                ResultEntryRow(name: 'Sarah Edwa..', studentId: 'EDU/JSS3A/001', caScore: '05', asScore: '05', exScore: '10', total: '20', grade: 'F', gradeColor: Color(0xFFE53935)),
-                                // Add more records here; they will smoothly scroll!
-                              ],
+                            child: studentsAsync.when(
+                              loading: () => const Center(child: CircularProgressIndicator()),
+                              error: (e, s) => Center(child: Text('Failed to load students: $e')),
+                              data: (students) {
+                                final configs = configsAsync.valueOrNull ?? [];
+                                if (students.isEmpty || configs.isEmpty) return const SizedBox.shrink();
+
+                                return ListView.separated(
+                                  padding: EdgeInsets.zero,
+                                  itemCount: students.length,
+                                  separatorBuilder: (_, __) => Divider(height: 1, color: theme.colorScheme.outline.withValues(alpha: 0.1)),
+                                  itemBuilder: (context, index) {
+                                    return ResultEntryRow(
+                                      student: students[index],
+                                      configs: configs,
+                                    );
+                                  },
+                                );
+                              }
                             ),
                           ),
                         ],
@@ -133,10 +225,7 @@ class ResultEntryScreen extends StatelessWidget {
           
           // Pinned Bottom Bar
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: Sizes.paddingM,
-              vertical: Sizes.paddingS
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: Sizes.paddingM, vertical: Sizes.paddingS),
             decoration: BoxDecoration(
               color: theme.scaffoldBackgroundColor,
               border: Border(top: BorderSide(color: colorScheme.outline.withValues(alpha: 0.1))),
@@ -144,40 +233,20 @@ class ResultEntryScreen extends StatelessWidget {
             child: Row(
               children: [
                 Expanded(
-                  child: OutlinedButton(
-                    onPressed: ()=> SuccessDialog.show(
-                      context, 
-                      title: 'Submitted for Approval', 
-                      buttonText: 'Done', 
-                      message: 'Your result sheet has been forwarded to the Head of department for review', 
-                      onButtonPressed:()=>context.pop()
-                      ),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(0, 56),
-                      side: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Sizes.buttonBorderRadius)),
-                    ),
-                    child: Text(
-                      'Save',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
+                  child: OutlinedBorderButton(
+                    label: 'Save draft',
+                    onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Saved locally!'))),
                   ),
                 ),
                 const SizedBox(width: Sizes.spaceM),
                 Expanded(
+                  child: Expanded(
                   child: PrimaryButton(
                     label: 'Submit',
-                    onPressed: ()=> SuccessDialog.show(
-                      context, 
-                      title: 'Scores Saved', 
-                      buttonText: 'Done', 
-                      message: '10 student records for JSS 3A have been saved', 
-                      onButtonPressed:()=>context.pop()
-                      ),
+                    isLoading: _isSubmitting,
+                    onPressed: _checkBeforeSubmit, // 🚨 Call the pre-check instead of _handleSubmit directly
                   ),
+                ),
                 ),
               ],
             ),

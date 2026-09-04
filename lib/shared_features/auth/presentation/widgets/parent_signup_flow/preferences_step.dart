@@ -1,19 +1,29 @@
-import 'package:edu_guardian_app/core/widgets/containers/round_rect_border.dart';
 import 'package:flutter/material.dart';
 import '../../../../../core/constants/app_sizes.dart';
+import 'package:edu_guardian_app/core/widgets/containers/round_rect_border.dart';
 
-class PreferencesStep extends StatefulWidget {
-  const PreferencesStep({super.key});
+class PreferencesStep extends StatelessWidget {
+  final bool initialGrades;
+  final bool initialBehavior;
+  final bool initialAttendance;
+  final bool initialAnnouncements;
 
-  @override
-  State<PreferencesStep> createState() => _PreferencesStepState();
-}
+  final ValueChanged<bool> onGradesChanged;
+  final ValueChanged<bool> onBehaviorChanged;
+  final ValueChanged<bool> onAttendanceChanged;
+  final ValueChanged<bool> onAnnouncementsChanged;
 
-class _PreferencesStepState extends State<PreferencesStep> {
-  bool grades = true;
-  bool behavior = true;
-  bool attendance = true;
-  bool announcements = true;
+  const PreferencesStep({
+    super.key,
+    required this.initialGrades,
+    required this.initialBehavior,
+    required this.initialAttendance,
+    required this.initialAnnouncements,
+    required this.onGradesChanged,
+    required this.onBehaviorChanged,
+    required this.onAttendanceChanged,
+    required this.onAnnouncementsChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -27,84 +37,26 @@ class _PreferencesStepState extends State<PreferencesStep> {
           RichText(
             text: TextSpan(
               text: "What should we ",
-              style: textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: colorScheme.onSurface,
-              ),
+              style: textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold, color: colorScheme.onSurface),
               children: [
                 TextSpan(
                   text: "alert\nyou about?",
-                  style: textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.primary,
-                  ),
+                  style: textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold, color: colorScheme.primary),
                 ),
               ],
             ),
           ),
           const SizedBox(height: Sizes.spaceSm),
-          Text(
-            'You can change this anytime in Settings.',
-            style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: Sizes.spaceL),
-
-          // Linked Accounts Card
-          RoundRectBorder(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.person_outline, size: 16, color: colorScheme.primary),
-                    const SizedBox(width: Sizes.spaceXS),
-                    Text(
-                      'LINKED TO YOUR ACCOUNT',
-                      style: textTheme.labelSmall?.copyWith(
-                        color: colorScheme.primary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: Sizes.spaceM),
-                _buildLinkedChild('Chinedu Okafor', 'JSS 2B - Greenfield International School', textTheme, colorScheme),
-                const SizedBox(height: Sizes.spaceM),
-                _buildLinkedChild('Ada Okafor', 'Primary 4 - Greenfield International School', textTheme, colorScheme),
-              ],
-            ),
-          ),
+          Text('You can change this anytime in Settings.', style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant)),
           const SizedBox(height: Sizes.spaceL),
 
           // Switches
-          _buildSwitchTile('Grades & reports', 'New scores and term reports', grades, (val) => setState(() => grades = val), textTheme, colorScheme),
-          _buildSwitchTile('Behavior alerts', 'Concerning incidents flagged by teachers', behavior, (val) => setState(() => behavior = val), textTheme, colorScheme),
-          _buildSwitchTile('Attendance', 'Absentees, late arrivals and early exits', attendance, (val) => setState(() => attendance = val), textTheme, colorScheme),
-          _buildSwitchTile('School announcements', 'General news from the school.', announcements, (val) => setState(() => announcements = val), textTheme, colorScheme),
+          _buildSwitchTile('Grades & reports', 'New scores and term reports', initialGrades, onGradesChanged, textTheme, colorScheme),
+          _buildSwitchTile('Behavior alerts', 'Concerning incidents flagged by teachers', initialBehavior, onBehaviorChanged, textTheme, colorScheme),
+          _buildSwitchTile('Attendance', 'Absentees, late arrivals and early exits', initialAttendance, onAttendanceChanged, textTheme, colorScheme),
+          _buildSwitchTile('School announcements', 'General news from the school.', initialAnnouncements, onAnnouncementsChanged, textTheme, colorScheme),
         ],
       ),
-    );
-  }
-
-  Widget _buildLinkedChild(String name, String details, TextTheme textTheme, ColorScheme colorScheme) {
-    return Row(
-      children: [
-        CircleAvatar(
-          radius: 16,
-          backgroundColor: colorScheme.surface,
-          child: Icon(Icons.school_outlined, size: 16, color: colorScheme.outlineVariant),
-        ),
-        const SizedBox(width: Sizes.spaceS),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(name, style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-              Text(details, style: textTheme.bodySmall?.copyWith(color: colorScheme.outlineVariant)),
-            ],
-          ),
-        )
-      ],
     );
   }
 

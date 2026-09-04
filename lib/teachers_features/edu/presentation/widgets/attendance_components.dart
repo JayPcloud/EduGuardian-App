@@ -1,4 +1,6 @@
+import 'package:edu_guardian_app/core/constants/spacing_style.dart';
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
 import '../../../../core/constants/app_sizes.dart';
 
 // --- FILTER DROPDOWN CARD ---
@@ -6,12 +8,14 @@ class TeachersAttendanceFilterDropdown extends StatefulWidget {
   final String label;
   final String initialValue;
   final List<String> items;
+  final ValueChanged<String>? onSelected;
 
   const TeachersAttendanceFilterDropdown({
     super.key,
     required this.label,
     required this.initialValue,
     required this.items,
+    this.onSelected,
   });
 
   @override
@@ -40,7 +44,10 @@ class _TeachersAttendanceFilterDropdownState extends State<TeachersAttendanceFil
         elevation: 4,
         shadowColor: Colors.black12,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Sizes.radiusL)),
-        onSelected: (value) => setState(() => _currentValue = value),
+        onSelected: (value) {
+          setState(() => _currentValue = value);
+          if (widget.onSelected != null) widget.onSelected!(value);
+        } ,
         itemBuilder: (context) {
           return widget.items.map((item) {
             return PopupMenuItem<String>(
@@ -110,29 +117,35 @@ class TeachersAttendanceQuickAction extends StatelessWidget {
   final String label;
   final Color bgColor;
   final Color textColor;
+  final VoidCallback onTap;
 
   const TeachersAttendanceQuickAction({
     super.key,
     required this.label,
     required this.bgColor,
     required this.textColor,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: Sizes.paddingM, vertical: 10),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(Sizes.radiusXL),
-      ),
-      child: Text(
-        label,
-        style: theme.textTheme.labelMedium?.copyWith(
-          color: textColor,
-          fontWeight: FontWeight.w600,
+    return InkWell(
+      borderRadius: AppSpacingStyle.allBorderRdSm,
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: Sizes.paddingM, vertical: 10),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(Sizes.radiusXL),
+        ),
+        child: Text(
+          label,
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: textColor,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
     );
@@ -205,6 +218,7 @@ class StudentAttendanceCard extends StatelessWidget {
   final String studentId;
   final String? avatarUrl;
   final String currentStatus; // 'P', 'A', 'L', or 'E'
+  final void Function(String) onStatusTap;
 
   const StudentAttendanceCard({
     super.key,
@@ -212,6 +226,7 @@ class StudentAttendanceCard extends StatelessWidget {
     required this.studentId,
     this.avatarUrl,
     required this.currentStatus,
+    required this.onStatusTap
   });
 
   @override
@@ -265,13 +280,13 @@ class StudentAttendanceCard extends StatelessWidget {
           // Status Toggles
           Row(
             children: [
-              _buildStatusCircle('P', const Color(0xFF00BFA5), currentStatus == 'P'),
+              _buildStatusCircle('P', const Color(0xFF00BFA5), currentStatus == 'P', ()=>onStatusTap('present')),
               const SizedBox(width: 6),
-              _buildStatusCircle('A', const Color(0xFFF44336), currentStatus == 'A'),
+              _buildStatusCircle('A', const Color(0xFFF44336), currentStatus == 'A', ()=>onStatusTap('absent')),
               const SizedBox(width: 6),
-              _buildStatusCircle('L', const Color(0xFFFFC107), currentStatus == 'L'),
+              _buildStatusCircle('L', const Color(0xFFFFC107), currentStatus == 'L', ()=>onStatusTap('late')),
               const SizedBox(width: 6),
-              _buildStatusCircle('E', const Color(0xFF2196F3), currentStatus == 'E'),
+              _buildStatusCircle('E', const Color(0xFF2196F3), currentStatus == 'E', ()=>onStatusTap('excuse')),
             ],
           )
         ],
@@ -279,23 +294,55 @@ class StudentAttendanceCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusCircle(String letter, Color activeColor, bool isActive) {
-    return Container(
-      width: 24,
-      height: 24,
-      decoration: BoxDecoration(
-        color: isActive ? activeColor : const Color(0xFFE0E0E0), // Active color or light grey
-        shape: BoxShape.circle,
-      ),
-      child: Center(
-        child: Text(
-          letter,
-          style: TextStyle(
-            color: isActive ? Colors.white : const Color(0xFF757575), // White text if active, dark grey if inactive
-            fontSize: 10,
-            fontWeight: FontWeight.w700,
+  Widget _buildStatusCircle(String letter, Color activeColor, bool isActive, VoidCallback onStatusTap) {
+    return InkWell(
+      borderRadius: AppSpacingStyle.allBorderRdMd,
+      onTap: onStatusTap,
+      child: Container(
+        width: 24,
+        height: 24,
+        decoration: BoxDecoration(
+          color: isActive ? activeColor : const Color(0xFFE0E0E0), // Active color or light grey
+          shape: BoxShape.circle,
+        ),
+        child: Center(
+          child: Text(
+            letter,
+            style: TextStyle(
+              color: isActive ? Colors.white : const Color(0xFF757575), // White text if active, dark grey if inactive
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+
+
+
+
+
+
+
+
+class TeacherAttendanceShimmer extends StatelessWidget {
+  const TeacherAttendanceShimmer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Shimmer.fromColors(
+      baseColor: isDark ? Colors.grey[850]! : Colors.grey[300]!,
+      highlightColor: isDark ? Colors.grey[700]! : Colors.grey[100]!,
+      child: Column(
+        children: List.generate(5, (index) => Container(
+          margin: const EdgeInsets.only(bottom: Sizes.spaceM),
+          height: 90,
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(Sizes.radiusL)),
+        )),
       ),
     );
   }

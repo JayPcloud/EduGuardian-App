@@ -10,6 +10,7 @@ import '../screens/setup_2FA_screen.dart';
 // ==========================================
 // VIEW 1: SELECT METHOD
 // ==========================================
+
 class SelectMethodView extends StatelessWidget {
   final TwoFAMethod? selectedMethod;
   final ValueChanged<TwoFAMethod> onSelect;

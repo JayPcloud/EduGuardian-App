@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
 import '../../../../core/constants/app_sizes.dart';
 
 class AcademicFilterDropdown extends StatefulWidget {
@@ -79,6 +80,32 @@ class _AcademicFilterDropdownState extends State<AcademicFilterDropdown> {
             Icon(Icons.keyboard_arrow_down, size: 16, color: theme.colorScheme.primary),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class AcademicShimmer extends StatelessWidget {
+  const AcademicShimmer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.grey[850]! : Colors.grey[300]!;
+    final highlightColor = isDark ? Colors.grey[700]! : Colors.grey[100]!;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: Column(
+        children: List.generate(4, (index) => Container(
+          margin: const EdgeInsets.only(bottom: Sizes.spaceM),
+          height: 80,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(Sizes.radiusL),
+          ),
+        )),
       ),
     );
   }

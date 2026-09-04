@@ -153,7 +153,7 @@ class StudentAttendanceTabSection extends StatelessWidget {
         // Attendance Calendar
         Text('Attendance Calendar', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
         const SizedBox(height: Sizes.spaceM),
-        const AttendanceCalendarGrid(), 
+        const AttendanceCalendarGrid(statusMap: {},), 
         const SizedBox(height: Sizes.spaceL),
       ],
     );

@@ -1,35 +1,47 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:shimmer/shimmer.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/constants/spacing_style.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../shared_features/auth/presentation/controllers/auth_status_controller.dart'; // 🚨 Make sure to add 'intl' to pubspec.yaml if you want nice date formatting
 
 // --- DASHBOARD HEADER ---
-class TeacherDashboardHeader extends StatelessWidget {
+class TeacherDashboardHeader extends ConsumerWidget {
   const TeacherDashboardHeader({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
 
+    // 🚨 Fetch dynamic user
+    final currentUser = ref.watch(authStatusNotifierProvider).value;
+    final userName = currentUser?.name ?? 'Teacher';
+    final initial = userName.isNotEmpty ? userName[0].toUpperCase() : 'T';
+    
+    // 🚨 Dynamic Date
+    final today = DateFormat('EEEE, MMMM d').format(DateTime.now());
+
     return Container(
       padding: const EdgeInsets.only(
-        top: Sizes.spaceXXXL, // Accounts for SafeArea
+        top: Sizes.spaceXXXL, 
         left: Sizes.paddingL,
         right: Sizes.paddingL,
         bottom: Sizes.paddingXL,
       ),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
             transform: GradientRotation(2.1),
-            colors: [AppColors.accentBlue, AppColors.primaryDark,],
+            colors: [AppColors.accentBlue, AppColors.primaryDark],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
-        borderRadius: const BorderRadius.vertical(
+        borderRadius: BorderRadius.vertical(
           bottom: Radius.circular(Sizes.radiusXXL),
         ),
       ),
@@ -54,7 +66,7 @@ class TeacherDashboardHeader extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Mrs. Okafor',
+                      userName, // 🚨 Dynamic Name
                       style: textTheme.headlineMedium?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
@@ -62,7 +74,7 @@ class TeacherDashboardHeader extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Friday, July 17',
+                      today, // 🚨 Dynamic Date
                       style: textTheme.bodyMedium?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.w500,
@@ -74,7 +86,7 @@ class TeacherDashboardHeader extends StatelessWidget {
               Row(
                 children: [
                   InkWell(
-                    onTap: () =>context.push(AppRoutes.alerts),
+                    onTap: () => context.push(AppRoutes.alerts),
                     customBorder: RoundedRectangleBorder(borderRadius: AppSpacingStyle.allBorderRdMd),
                     child: CircleAvatar(
                       backgroundColor: theme.colorScheme.surface,
@@ -85,10 +97,10 @@ class TeacherDashboardHeader extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: Sizes.spaceS),
-                  const CircleAvatar(
-                    backgroundColor: Color(0xFF002244), // Darker blue
+                  CircleAvatar(
+                    backgroundColor: const Color(0xFF002244), 
                     radius: 20,
-                    child: Text('E', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                    child: Text(initial, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)), // 🚨 Dynamic Initial
                   ),
                 ],
               )
@@ -96,7 +108,7 @@ class TeacherDashboardHeader extends StatelessWidget {
           ),
           const SizedBox(height: Sizes.spaceXL),
           
-          // Inner Info Card
+          // Inner Info Card (Untouched)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: Sizes.paddingM, vertical: Sizes.paddingM),
             decoration: BoxDecoration(
@@ -317,6 +329,55 @@ class ScheduleCard extends StatelessWidget {
             ),
           )
         ],
+      ),
+    );
+  }
+}
+
+
+class TeacherStatsShimmer extends StatelessWidget {
+  const TeacherStatsShimmer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.grey[850]! : Colors.grey[300]!;
+    final highlightColor = isDark ? Colors.grey[700]! : Colors.grey[100]!;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: Row(
+        children: List.generate(4, (index) => Expanded(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            height: 100,
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(Sizes.radiusL)),
+          ),
+        )),
+      ),
+    );
+  }
+}
+
+class TeacherScheduleShimmer extends StatelessWidget {
+  const TeacherScheduleShimmer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.grey[850]! : Colors.grey[300]!;
+    final highlightColor = isDark ? Colors.grey[700]! : Colors.grey[100]!;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: Column(
+        children: List.generate(3, (index) => Container(
+          margin: const EdgeInsets.only(bottom: Sizes.spaceM),
+          height: 90,
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(Sizes.radiusXL)),
+        )),
       ),
     );
   }

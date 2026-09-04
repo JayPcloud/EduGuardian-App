@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_sizes.dart';
 
+
 class DatePickerDropDown extends StatefulWidget {
   final String initialValue;
+  final ValueChanged<DateTime>? onDateSelected;
 
   const DatePickerDropDown({
     super.key,
     required this.initialValue,
+    this.onDateSelected
   });
 
   @override
@@ -50,6 +53,7 @@ class _DatePickerDropDownState extends State<DatePickerDropDown> {
         _selectedDate = picked;
         _currentValue = _formatDate(picked);
       });
+      if (widget.onDateSelected != null) widget.onDateSelected!(picked);
     }
   }
 

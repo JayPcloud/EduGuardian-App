@@ -2,11 +2,11 @@ class AppTexts {
   AppTexts._();
 
   //APP CONFIG
-  static const defaultApiBaseUrl = "http://campusmart-backend.pxxl.click/api/v1";
-  static const termsAndPrivatePolicyUrl =  "https://docs.google.com/document/d/e/2PACX-1vQWLEr-fde3OezXojYPBJc62nz7ub8XC2tgr2GjwPvDFLdvTOfUAQJn9HS1ey_ODRXU62osG2iati0R/pub";
+  static const defaultApiBaseUrl = "https://api.eduguardian.app/api/v1/";
+  // static const termsAndPrivatePolicyUrl =  ;
 
   // Storage Keys
-  static const accessTokenKey = 'access';
+  static const accessTokenKey = 'token';
   static const refrehTokenKey = 'refresh';
   static const userCacheKey = 'user_cache';
 

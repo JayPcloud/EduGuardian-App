@@ -1,53 +1,79 @@
-import 'package:edu_guardian_app/core/widgets/buttons/primary_button.dart';
 import 'package:flutter/material.dart';
+import '../../data/models/result_models.dart'; // Adjust path
 import '../../../../../core/constants/app_sizes.dart';
+import '../../../../../core/widgets/buttons/primary_button.dart';
 
 class EditGradeDialog extends StatefulWidget {
   final String studentName;
   final String subject;
+  final List<ResultConfigModel> configs;
+  final Map<String, String> initialScores;
+  final void Function(Map<String, String>) onSaveScore;
 
   const EditGradeDialog({
     super.key,
-    this.studentName = 'Ifeoma Eze',
-    this.subject = 'Mathematics',
+    required this.studentName,
+    required this.subject,
+    required this.configs,
+    required this.initialScores,
+    required this.onSaveScore,
   });
+
+  static void show(
+    BuildContext context, {
+    required String studentName,
+    required String subject,
+    required List<ResultConfigModel> configs,
+    required Map<String, String> initialScores,
+    required void Function(Map<String, String>) onSaveScore,
+  }) {
+    showDialog(
+      context: context,
+      builder: (context) => EditGradeDialog(
+        studentName: studentName,
+        subject: subject,
+        configs: configs,
+        initialScores: initialScores,
+        onSaveScore: onSaveScore,
+      ),
+    );
+  }
 
   @override
   State<EditGradeDialog> createState() => _EditGradeDialogState();
 }
 
 class _EditGradeDialogState extends State<EditGradeDialog> {
-  // Controllers pre-filled with the exact data from your design
-  final _assignmentCtrl = TextEditingController(text: '18');
-  final _textCtrl = TextEditingController(text: '17');
-  final _examCtrl = TextEditingController(text: '50');
-
-  int _totalScore = 85;
+  final Map<String, TextEditingController> _controllers = {};
+  int _totalScore = 0;
 
   @override
   void initState() {
     super.initState();
-    // Add listeners to auto-calculate the total whenever the user types
-    _assignmentCtrl.addListener(_calculateTotal);
-    _textCtrl.addListener(_calculateTotal);
-    _examCtrl.addListener(_calculateTotal);
+    // Initialize controllers dynamically
+    for (var config in widget.configs) {
+      final ctrl = TextEditingController(text: widget.initialScores[config.id] ?? '');
+      ctrl.addListener(_calculateTotal);
+      _controllers[config.id] = ctrl;
+    }
+    _calculateTotal(); // Calculate initial total
   }
 
   @override
   void dispose() {
-    _assignmentCtrl.dispose();
-    _textCtrl.dispose();
-    _examCtrl.dispose();
+    for (var ctrl in _controllers.values) {
+      ctrl.dispose();
+    }
     super.dispose();
   }
 
   void _calculateTotal() {
-    final assign = int.tryParse(_assignmentCtrl.text) ?? 0;
-    final test = int.tryParse(_textCtrl.text) ?? 0;
-    final exam = int.tryParse(_examCtrl.text) ?? 0;
-    
+    int total = 0;
+    for (var ctrl in _controllers.values) {
+      total += int.tryParse(ctrl.text) ?? 0;
+    }
     setState(() {
-      _totalScore = assign + test + exam;
+      _totalScore = total;
     });
   }
 
@@ -60,7 +86,7 @@ class _EditGradeDialogState extends State<EditGradeDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Sizes.radiusXL)),
       backgroundColor: theme.cardColor,
       insetPadding: const EdgeInsets.all(Sizes.paddingL),
-      child: SingleChildScrollView( // Prevents overflow when keyboard pops up
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(Sizes.paddingXL),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -98,33 +124,20 @@ class _EditGradeDialogState extends State<EditGradeDialog> {
             ),
             const SizedBox(height: Sizes.spaceXL),
             
-            // SCORE INPUTS (Responsive)
+            // SCORE INPUTS (Dynamically Generated)
             Row(
-              children: [
-                Expanded(
-                  child: _buildScoreInput(
-                    label: 'Assignment(20)',
-                    controller: _assignmentCtrl,
-                    theme: theme,
+              children: widget.configs.map((config) {
+                return Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(right: config != widget.configs.last ? Sizes.spaceS : 0),
+                    child: _buildScoreInput(
+                      label: '${config.assessmentType} (${config.percentage})',
+                      controller: _controllers[config.id]!,
+                      theme: theme,
+                    ),
                   ),
-                ),
-                const SizedBox(width: Sizes.spaceS),
-                Expanded(
-                  child: _buildScoreInput(
-                    label: 'Test (20)', 
-                    controller: _textCtrl,
-                    theme: theme,
-                  ),
-                ),
-                const SizedBox(width: Sizes.spaceS),
-                Expanded(
-                  child: _buildScoreInput(
-                    label: 'Exam (60)',
-                    controller: _examCtrl,
-                    theme: theme,
-                  ),
-                ),
-              ],
+                );
+              }).toList(),
             ),
             const SizedBox(height: Sizes.spaceL),
 
@@ -132,9 +145,9 @@ class _EditGradeDialogState extends State<EditGradeDialog> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: Sizes.paddingL, vertical: Sizes.paddingM),
               decoration: BoxDecoration(
-                color: const Color(0xFFE1F0FF), // Soft blue background
+                color: const Color(0xFFE1F0FF),
                 borderRadius: BorderRadius.circular(Sizes.radiusL),
-                border: Border.all(color: const Color(0xFFB3D4F5)), // Slightly darker blue border
+                border: Border.all(color: const Color(0xFFB3D4F5)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -168,15 +181,13 @@ class _EditGradeDialogState extends State<EditGradeDialog> {
               trailingIcon: null,
               height: 35,
               onPressed: () {
-                // Pass the updated scores back when closed
-                Navigator.pop(context, {
-                  'assignment': int.tryParse(_assignmentCtrl.text) ?? 0,
-                  'test': int.tryParse(_textCtrl.text) ?? 0,
-                  'exam': int.tryParse(_examCtrl.text) ?? 0,
-                  'total': _totalScore,
-                });
+                final Map<String, String> results = {};
+                for (var config in widget.configs) {
+                  results[config.id] = _controllers[config.id]!.text;
+                }
+                widget.onSaveScore(results);
+                Navigator.pop(context);
               },
-              
             )
           ],
         ),
@@ -184,12 +195,7 @@ class _EditGradeDialogState extends State<EditGradeDialog> {
     );
   }
 
-  // Reusable input widget for the 3 fields
-  Widget _buildScoreInput({
-    required String label,
-    required TextEditingController controller,
-    required ThemeData theme,
-  }) {
+  Widget _buildScoreInput({required String label, required TextEditingController controller, required ThemeData theme}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -207,7 +213,9 @@ class _EditGradeDialogState extends State<EditGradeDialog> {
           controller: controller,
           keyboardType: TextInputType.number,
           style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
-          
+          decoration: const InputDecoration(
+            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          ),
         ),
       ],
     );

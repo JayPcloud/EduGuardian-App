@@ -1,28 +1,29 @@
 import 'package:edu_guardian_app/core/constants/spacing_style.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shimmer/shimmer.dart';
 import '../../../../../core/constants/app_sizes.dart';
 import '../../../../../core/theme/app_colors.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-
 import '../../../../core/router/app_routes.dart';
+import '../../../../shared_features/auth/presentation/controllers/auth_status_controller.dart';
+import '../../data/models/student_model.dart';
+import '../controllers/student_providers.dart';
 
-class HomeHeader extends StatefulWidget {
+class HomeHeader extends ConsumerWidget {
   const HomeHeader({super.key});
 
   @override
-  State<HomeHeader> createState() => _HomeHeaderState();
-}
-
-class _HomeHeaderState extends State<HomeHeader> {
-  // State to track the selected child
-  String _selectedChild = 'Ebele Okafor';
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
+
+    // 🚨 Reactive State
+    final activeWard = ref.watch(activeWardProvider);
+    final wardsAsync = ref.watch(myWardsProvider);
+    final currentUser = ref.watch(authStatusNotifierProvider).value;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -33,7 +34,7 @@ class _HomeHeaderState extends State<HomeHeader> {
             children: [
               Text('GOOD MORNING', style: textTheme.labelSmall?.copyWith(color: colorScheme.outlineVariant, letterSpacing: 1.2)),
               Text(
-                'Mrs. Okafor',
+                currentUser?.name ?? 'Parent',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700, color: colorScheme.onPrimaryContainer),
@@ -45,7 +46,7 @@ class _HomeHeaderState extends State<HomeHeader> {
         Row(
           children: [
             InkWell(
-              onTap: () =>context.push(AppRoutes.alerts),
+              onTap: () => context.push(AppRoutes.alerts),
               customBorder: RoundedRectangleBorder(borderRadius: AppSpacingStyle.allBorderRdMd),
               child: CircleAvatar(
                 backgroundColor: colorScheme.surfaceContainerHighest,
@@ -58,59 +59,76 @@ class _HomeHeaderState extends State<HomeHeader> {
             const SizedBox(width: Sizes.spaceS),
             
             // The Dropdown Trigger & Menu
-            PopupMenuButton<String>(
-              position: PopupMenuPosition.under,
-              offset: const Offset(0, 10), // Pushes the menu perfectly below the button
-              color: theme.cardColor,
-              elevation: 8,
-              shadowColor: Colors.black26,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Sizes.radiusXL)),
-              onSelected: (value) {
-                setState(() => _selectedChild = value);
-              },
-              itemBuilder: (context) {
-                return [
-                  _buildChildMenuItem('Ebele Okafor', 'JSS 2 — Diamond', 'EO', const Color(0xFF4A7499), theme),
-                  const PopupMenuDivider(height: 1),
-                  _buildChildMenuItem('Chinedu Okafor', 'Primary 5 — Gold', 'CO', const Color(0xFFD4A345), theme),
-                  const PopupMenuDivider(height: 1),
-                  _buildChildMenuItem('Amaka Okafor', 'SSS 2 — Science', 'AO', const Color(0xFFD4A345), theme),
-                ];
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: Sizes.paddingS, vertical: Sizes.paddingXS),
-                decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest,
-                  border: Border.all(color: colorScheme.outline),
-                  borderRadius: BorderRadius.circular(Sizes.radiusCircular),
-                ),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 12, 
-                      backgroundColor: colorScheme.primaryContainer, 
-                      child: Text(_selectedChild[0], style: textTheme.labelSmall)
-                    ),
-                    const SizedBox(width: Sizes.spaceXS),
-                    // Displays only the first name
-                    Text(_selectedChild.split(' ')[0], style: textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600)),
-                    const Icon(Icons.keyboard_arrow_down, size: 16),
-                  ],
+            wardsAsync.when(
+              loading: () => Shimmer.fromColors(
+                baseColor: theme.brightness == Brightness.dark ? Colors.grey[800]! : Colors.grey[300]!,
+                highlightColor: theme.brightness == Brightness.dark ? Colors.grey[700]! : Colors.grey[100]!,
+                child: Container(
+                  width: 70,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(Sizes.radiusCircular),
+                  ),
                 ),
               ),
-            )
+              error: (err, stack) => const Icon(Icons.error, color: Colors.red),
+              data: (wards) {
+                // if (wards.isEmpty || activeWard == null) return const SizedBox.shrink();
+
+                return PopupMenuButton<WardModel>(
+                  position: PopupMenuPosition.under,
+                  offset: const Offset(0, 10),
+                  color: theme.cardColor,
+                  elevation: 8,
+                  shadowColor: Colors.black26,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Sizes.radiusXL)),
+                  onSelected: (selectedWard) {
+                    // 🚨 Instantly updates the global active ward
+                    ref.read(activeWardProvider.notifier).setWard(selectedWard);
+                  },
+                  itemBuilder: (context) {
+                    return wards.map((ward) {
+                      return PopupMenuItem<WardModel>(
+                        value: ward,
+                        padding: EdgeInsets.zero,
+                        child: _buildChildMenuItem(ward, activeWard?.id??'null', const Color(0xFF4A7499), theme),
+                      );
+                    }).toList();
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: Sizes.paddingS, vertical: Sizes.paddingXS),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surfaceContainerHighest,
+                      border: Border.all(color: colorScheme.outline),
+                      borderRadius: BorderRadius.circular(Sizes.radiusCircular),
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 12, 
+                          backgroundColor: colorScheme.primaryContainer, 
+                          child: Text(activeWard?.initials??'null', style: textTheme.labelSmall)
+                        ),
+                        const SizedBox(width: Sizes.spaceXS),
+                        Text(activeWard?.firstName??'null', style: textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600)),
+                        const Icon(Icons.keyboard_arrow_down, size: 16),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
           ],
         )
       ],
     );
   }
 
-  // Helper method to build the custom child list items
-  PopupMenuItem<String> _buildChildMenuItem(String name, String details, String initials, Color avatarColor, ThemeData theme) {
-    final isSelected = _selectedChild == name;
+  Widget _buildChildMenuItem(WardModel ward, String activeWardId, Color avatarColor, ThemeData theme) {
+    final isSelected = activeWardId == ward.id;
 
-    return PopupMenuItem<String>(
-      value: name,
+    return Padding(
       padding: const EdgeInsets.symmetric(horizontal: Sizes.paddingM, vertical: Sizes.paddingS),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -118,7 +136,7 @@ class _HomeHeaderState extends State<HomeHeader> {
           CircleAvatar(
             radius: 20,
             backgroundColor: avatarColor,
-            child: Text(initials, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+            child: Text(ward.initials, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
           ),
           const SizedBox(width: Sizes.spaceM),
           Column(
@@ -126,7 +144,7 @@ class _HomeHeaderState extends State<HomeHeader> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                name, 
+                ward.fullName, 
                 style: theme.textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w700, 
                   color: theme.colorScheme.onPrimaryContainer
@@ -134,19 +152,16 @@ class _HomeHeaderState extends State<HomeHeader> {
               ),
               const SizedBox(height: 2),
               Text(
-                details, 
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: const Color(0xFF6B8DB0) // Matched the bluish-grey text from the design
-                )
+                '${ward.classCategory} — Term ${ward.term}', 
+                style: theme.textTheme.labelSmall?.copyWith(color: const Color(0xFF6B8DB0))
               ),
             ],
           ),
           const SizedBox(width: Sizes.spaceXL),
-          // Checkmark for selected item
           if (isSelected) 
             Icon(Icons.check, color: theme.colorScheme.primary, size: 20)
           else 
-            const SizedBox(width: 20), // Placeholder to keep alignment
+            const SizedBox(width: 20),
         ],
       ),
     );

@@ -1,29 +1,30 @@
-
-import 'package:edu_guardian_app/core/widgets/buttons/primary_button.dart';
+import 'package:edu_guardian_app/shared_features/auth/presentation/controllers/auth_status_controller.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_sizes.dart';
-import '../../../../core/router/app_routes.dart';
+import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/widgets/containers/selection_tile.dart';
+import '../../../../parents_features/dashboard/presentation/controllers/student_providers.dart';
+import '../../data/models/user_model.dart';
 
-class ChildSelectionScreen extends StatefulWidget {
-  const ChildSelectionScreen({super.key});
+class ChildSelectionScreen extends ConsumerStatefulWidget {
+  const ChildSelectionScreen({super.key, this.user});
 
+  final UserModel? user;
+  
   @override
-  State<ChildSelectionScreen> createState() => _ChildSelectionScreenState();
+  ConsumerState<ChildSelectionScreen> createState() => _ChildSelectionScreenState();
 }
 
-class _ChildSelectionScreenState extends State<ChildSelectionScreen> {
-  // Using a Set because the text says "Select all children", allowing multi-select
-  final Set<String> _selectedChildren = {'Ebele Okafor'}; 
+class _ChildSelectionScreenState extends ConsumerState<ChildSelectionScreen> {
+  final Set<String> _selectedChildrenIds = {}; 
 
-  void _toggleSelection(String name) {
+  void _toggleSelection(String id) {
     setState(() {
-      if (_selectedChildren.contains(name)) {
-        _selectedChildren.remove(name);
+      if (_selectedChildrenIds.contains(id)) {
+        _selectedChildrenIds.remove(id);
       } else {
-        _selectedChildren.add(name);
+        _selectedChildrenIds.add(id);
       }
     });
   }
@@ -32,6 +33,7 @@ class _ChildSelectionScreenState extends State<ChildSelectionScreen> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final wardsAsync = ref.watch(myWardsProvider); // Fetching live data
 
     return Scaffold(
       body: SafeArea(
@@ -41,33 +43,41 @@ class _ChildSelectionScreenState extends State<ChildSelectionScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: Sizes.spaceXXL), 
-              
               Text(
                 'Who are you parenting',
                 style: textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.w800,
-                  color: colorScheme.onPrimaryContainer, // Dark navy
+                  color: colorScheme.onPrimaryContainer,
                 ),
               ),
               const SizedBox(height: Sizes.spaceSm),
-              
               Text(
                 'Select all children linked to your account. You can switch between them anytime',
-                style: textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.outlineVariant,
-                  height: 1.4,
-                ),
+                style: textTheme.bodyMedium?.copyWith(color: colorScheme.outlineVariant, height: 1.4),
               ),
               const SizedBox(height: Sizes.spaceXXL),
 
-              // Children List
+              // 🚨 LIVE CHILDREN LIST
               Expanded(
-                child: ListView(
-                  children: [
-                    _buildChildTile('Ebele Okafor', 'Primary 4', context),
-                    _buildChildTile('Chinedu Okafor', 'Primary 4', context),
-                    _buildChildTile('Amaka Okafor', 'Primary 4', context),
-                  ],
+                child: wardsAsync.when(
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (err, stack) => Center(child: Text('Error loading children: $err')),
+                  data: (wards) {
+                    if (wards.isEmpty) {
+                      return const Center(child: Text("No children linked to this account."));
+                    }
+                    return ListView.builder(
+                      itemCount: wards.length,
+                      itemBuilder: (context, index) {
+                        final ward = wards[index];
+                        final name = ward.fullName;
+                        final id = ward.id.toString();
+                        final grade = ward.classCategory; // Adjust JSON keys to your API
+                        
+                        return _buildChildTile(id, name, grade, context);
+                      },
+                    );
+                  },
                 ),
               ),
             ],
@@ -78,29 +88,35 @@ class _ChildSelectionScreenState extends State<ChildSelectionScreen> {
         padding: const EdgeInsets.all(Sizes.paddingL),
         child: PrimaryButton(
           label: 'Continue',
-          onPressed: ()=>context.go(AppRoutes.homeDashboard),
-          ),
+          // Only allow continue if they picked at least one child (Optional)
+          onPressed: _selectedChildrenIds.isEmpty 
+              ? null 
+              : () {
+                if(widget.user!=null){
+                  ref.read(authStatusNotifierProvider.notifier).updateState(widget.user);
+                }else{
+                  ref.read(authStatusNotifierProvider.notifier).updateAuthStatusWithCache();
+                }
+              },
+        ),
       ),
     );
   }
 
-  // Helper method to build the customized tile
-  Widget _buildChildTile(String name, String grade, BuildContext context) {
-    final isSelected = _selectedChildren.contains(name);
+  Widget _buildChildTile(String id, String name, String grade, BuildContext context) {
+    final isSelected = _selectedChildrenIds.contains(id);
     final colorScheme = Theme.of(context).colorScheme;
 
     return SelectionTile(
       title: name,
       subtitle: grade,
       isSelected: isSelected,
-      onTap: () => _toggleSelection(name),
-      // Custom Prefix Icon setup
+      onTap: () => _toggleSelection(id),
       prefixIcon: CircleAvatar(
         radius: 22,
         backgroundColor: colorScheme.primaryContainer, 
-        child: Icon(Icons.domain, color: colorScheme.primary, size: 20), // Building icon
+        child: Icon(Icons.person, color: colorScheme.primary, size: 20),
       ),
-      // Custom Trailing Radio-style setup
       trailingIcon: Container(
         width: 22,
         height: 22,

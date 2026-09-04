@@ -1,8 +1,9 @@
 import 'package:edu_guardian_app/core/constants/app_assets.dart';
-import 'package:edu_guardian_app/shared_features/auth/presentation/providers/role_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../shared_features/auth/presentation/controllers/role_provider.dart';
 import '../../constants/app_sizes.dart';
+import '../../enums/enums.dart';
 
 class MainNavigationShell extends ConsumerWidget {
   final Widget child;

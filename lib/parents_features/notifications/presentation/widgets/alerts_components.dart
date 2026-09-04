@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
 import '../../../../core/constants/app_sizes.dart';
 
 // --- SECTION HEADER ---
@@ -89,6 +90,40 @@ class AlertCard extends StatelessWidget {
               height: 1.4,
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+
+class AlertsShimmer extends StatelessWidget {
+  const AlertsShimmer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.grey[850]! : Colors.grey[300]!;
+    final highlightColor = isDark ? Colors.grey[700]! : Colors.grey[100]!;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Section header skeleton
+          Container(width: 100, height: 16, color: Colors.white),
+          const SizedBox(height: Sizes.spaceM),
+          // Skeletons for cards
+          ...List.generate(3, (index) => Container(
+            margin: const EdgeInsets.only(bottom: Sizes.spaceM),
+            height: 90,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(Sizes.radiusL),
+            ),
+          )),
         ],
       ),
     );

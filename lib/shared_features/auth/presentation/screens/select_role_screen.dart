@@ -4,9 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/constants/app_sizes.dart';
+import '../../../../core/enums/enums.dart';
 import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/widgets/containers/selection_tile.dart';
-import '../providers/role_provider.dart';
+import '../controllers/role_provider.dart';
 import '../widgets/auth_header.dart';
 
 

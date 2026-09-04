@@ -1,22 +1,31 @@
 import 'package:edu_guardian_app/core/constants/app_decorations.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_sizes.dart';
+import '../../../../core/widgets/common/app_error_widget.dart';
+import '../../../../core/widgets/common/app_refresh_indicator.dart';
+import '../controllers/my_classes_providers.dart';
 import '../widgets/class_management_components.dart';
+import '../widgets/class_management_shimmer.dart';
 
-class ClassManagementScreen extends StatefulWidget {
-  const ClassManagementScreen({super.key});
+class ClassManagementScreen extends ConsumerStatefulWidget {
+  const ClassManagementScreen({super.key, required this.classId});
+
+  final String classId; // 🚨 Now takes ID instead of the full model!
 
   @override
-  State<ClassManagementScreen> createState() => _ClassManagementScreenState();
+  ConsumerState<ClassManagementScreen> createState() => _ClassManagementScreenState();
 }
 
-class _ClassManagementScreenState extends State<ClassManagementScreen> {
+class _ClassManagementScreenState extends ConsumerState<ClassManagementScreen> {
   int _selectedTabIndex = 0; // 0: Overview, 1: Students, 2: Attendance, 3: Results
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    
+    final classDetailsAsync = ref.watch(teacherClassDetailsProvider(widget.classId));
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -31,57 +40,75 @@ class _ClassManagementScreenState extends State<ClassManagementScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'JSS 3A',
+              classDetailsAsync.valueOrNull?.name ?? 'Loading...', // Dynamic
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w700,
                 color: colorScheme.onPrimaryContainer,
               ),
             ),
-            Text(
-              'Mathematics',
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: colorScheme.outlineVariant,
+            if (classDetailsAsync.valueOrNull != null && classDetailsAsync.value!.subjects.isNotEmpty)
+              Text(
+                classDetailsAsync.value!.subjects.first.name,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: colorScheme.outlineVariant,
+                ),
               ),
-            ),
           ],
         ),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(Sizes.paddingL),
-                    child: const ClassHeroCard(),
-                  ),
-                  const SizedBox(height: Sizes.spaceXL),
-                  _buildTabBar(theme),
-                  const SizedBox(height: Sizes.spaceXL),
-                  
-                  // Render the correct section component based on the selected tab
-                  if (_selectedTabIndex == 0) const ClassOverviewSection(),
-                  if (_selectedTabIndex == 1) const ClassStudentsSection(), // <-- PLUGGED IN HERE
-                  if (_selectedTabIndex == 2) const ClassAttendanceSection(),
-                  if (_selectedTabIndex == 3) const ClassResultsSection(),
-                ],
-              ),
-            ),
+      body: AppRefreshIndicator(
+        onRefresh: () => ref.refresh(teacherClassDetailsProvider(widget.classId).future),
+        child: classDetailsAsync.when(
+          skipLoadingOnRefresh: false,
+          loading: () => const ClassDetailsShimmer(),
+          error: (err, stack) => AppErrorWidget(
+            message: err.toString(),
+            onRetry: () => ref.invalidate(teacherClassDetailsProvider(widget.classId)),
           ),
-        ],
+          data: (classDetails) {
+            return Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(Sizes.paddingL),
+                          child: ClassHeroCard(
+                            excellentStudentsCount: classDetails.topOfTheClass.where((e) =>e.percentage>75).length.toString(),
+                            attendancePercent: classDetails.attendancePercentage.toString(),
+                            totalStudents: classDetails.totalStudents.toString(),
+                          ),
+                        ),
+                        const SizedBox(height: Sizes.spaceXL),
+                        _buildTabBar(theme),
+                        const SizedBox(height: Sizes.spaceXL),
+                        
+                        // Render the correct section component based on the selected tab
+                        if (_selectedTabIndex == 0) ClassOverviewSection(classDetails: classDetails),
+                        if (_selectedTabIndex == 1) ClassStudentsSection(classId: classDetails.id,subject: classDetails.subjects[0].name,), 
+                        if (_selectedTabIndex == 2) ClassAttendanceSection(classId: classDetails.id),
+                        if (_selectedTabIndex == 3) const ClassResultsSection(),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
 
-  // Keeping the TabBar here since it directly controls this screen's state
   Widget _buildTabBar(ThemeData theme) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          SizedBox(width: Sizes.spaceL,),
+          const SizedBox(width: Sizes.spaceL,),
           _buildTabChip('Overview', 0, theme),
           _buildTabChip('Students', 1, theme),
           _buildTabChip('Attendance', 2, theme),
@@ -100,8 +127,8 @@ class _ClassManagementScreenState extends State<ClassManagementScreen> {
         margin: const EdgeInsets.only(right: Sizes.spaceS),
         padding: const EdgeInsets.symmetric(horizontal: Sizes.paddingL, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected?null:theme.colorScheme.surfaceContainer,
-          gradient: isSelected? AppDecorations.primaryGradient(context):null,
+          color: isSelected ? null : theme.colorScheme.surfaceContainer,
+          gradient: isSelected ? AppDecorations.primaryGradient(context) : null,
           borderRadius: BorderRadius.circular(Sizes.radiusXL),
         ),
         child: Text(
@@ -115,3 +142,4 @@ class _ClassManagementScreenState extends State<ClassManagementScreen> {
     );
   }
 }
+

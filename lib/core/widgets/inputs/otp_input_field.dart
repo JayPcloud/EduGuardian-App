@@ -64,26 +64,32 @@ class _OtpInputFieldState extends State<OtpInputField> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: List.generate(widget.length, (index) {
-        return SizedBox(
-          width: Sizes.otpBoxSize,
-          height: Sizes.otpInputHeight,
-          child: TextField(
-            controller: _controllers[index],
-            focusNode: _focusNodes[index],
-            textAlign: TextAlign.center,
-            keyboardType: TextInputType.number,
-            maxLength: 1,
-            style: theme.textTheme.titleLarge,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration:  InputDecoration(
-              counterText: '', 
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.all(Radius.circular(18),
+        // Wrapped in Flexible so it can shrink dynamically on small screens
+        return Flexible(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2.0),
+            child: SizedBox(
+              width: Sizes.otpBoxSize,
+              height: Sizes.otpInputHeight,
+              child: TextField(
+                controller: _controllers[index],
+                focusNode: _focusNodes[index],
+                textAlign: TextAlign.center,
+                keyboardType: TextInputType.number,
+                maxLength: 1,
+                style: theme.textTheme.titleLarge,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration:  InputDecoration(
+                  counterText: '', 
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: const BorderRadius.all(Radius.circular(18),
+                    ),
+                    borderSide: BorderSide(color: theme.colorScheme.outline)
+                    )
                 ),
-                borderSide: BorderSide(color: theme.colorScheme.outline)
-                )
+                onChanged: (value) => _handleChanged(index, value),
+              ),
             ),
-            onChanged: (value) => _handleChanged(index, value),
           ),
         );
       }),

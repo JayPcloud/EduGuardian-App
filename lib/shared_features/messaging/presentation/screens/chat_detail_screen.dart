@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_sizes.dart';
-import '../../../auth/presentation/providers/role_provider.dart';
+import '../../../../core/enums/enums.dart';
+import '../../../auth/presentation/controllers/role_provider.dart';
 import '../widgets/messaging_components.dart';
 
 class ChatDetailScreen extends ConsumerWidget {

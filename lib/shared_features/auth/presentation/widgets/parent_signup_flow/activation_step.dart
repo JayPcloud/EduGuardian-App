@@ -1,10 +1,12 @@
 import 'package:edu_guardian_app/core/widgets/inputs/labeled_text_field.dart';
 import 'package:flutter/material.dart';
+import '../../../../../core/utility/form_validators.dart';
 import '../../../../../core/constants/app_sizes.dart';
-import '../auth_text_field.dart';
 
 class ActivationStep extends StatelessWidget {
-  const ActivationStep({super.key});
+  final TextEditingController emailController;
+
+  const ActivationStep({super.key, required this.emailController});
 
   @override
   Widget build(BuildContext context) {
@@ -18,17 +20,11 @@ class ActivationStep extends StatelessWidget {
           RichText(
             text: TextSpan(
               text: "Activate your ",
-              style: textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: colorScheme.onSurface,
-              ),
+              style: textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold, color: colorScheme.onSurface),
               children: [
                 TextSpan(
                   text: "parent account.",
-                  style: textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.primary,
-                  ),
+                  style: textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold, color: colorScheme.primary),
                 ),
               ],
             ),
@@ -39,17 +35,15 @@ class ActivationStep extends StatelessWidget {
             style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant, height: 1.4),
           ),
           const SizedBox(height: Sizes.spaceXXL),
-          const LabeledTextField(
+          LabeledTextField(
             label: 'Phone or email on the invitation',
             hintText: 'you@example.com or +234 901 234 5678',
             prefixIcon: Icons.email_outlined,
+            controller: emailController,
+            validator: FormValidators.validateEmail, // 🚨 Wired validation
           ),
-          const SizedBox(height: Sizes.spaceM),
-          const LabeledTextField(
-            label: 'Activation code',
-            hintText: 'e.g GF-4567',
-            prefixIcon: Icons.lock_outline,
-          ),
+          // Note: If you want them to enter the code here instead of the next screen, 
+          // add the second controller. Based on your _handleNextOrSubmit, we only send email here.
         ],
       ),
     );

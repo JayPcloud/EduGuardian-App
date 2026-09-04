@@ -1,5 +1,11 @@
+import 'package:edu_guardian_app/teachers_features/edu/presentation/widgets/edit_grade_dialog.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_sizes.dart';
+import '../../../../core/utility/helper_functions.dart';
+import '../../data/models/class_management_models.dart';
+import '../../data/models/result_models.dart';
+import '../controllers/teacher_result_providers.dart';
 
 // --- TIMETABLE DATE SELECTOR ---
 class DateSelectorChip extends StatelessWidget {
@@ -146,44 +152,38 @@ class TimetableCard extends StatelessWidget {
 }
 
 // --- RESULT ENTRY ROW ---
-class ResultEntryRow extends StatelessWidget {
-  final String name;
-  final String studentId;
-  final String caScore;
-  final String asScore;
-  final String exScore;
-  final String total;
-  final String grade;
-  final Color gradeColor;
+class ResultEntryRow extends ConsumerWidget {
+  final TeacherClassStudentModel student;
+  final List<ResultConfigModel> configs;
 
-  const ResultEntryRow({
-    super.key,
-    required this.name,
-    required this.studentId,
-    required this.caScore,
-    required this.asScore,
-    required this.exScore,
-    required this.total,
-    required this.grade,
-    required this.gradeColor,
-  });
+  const ResultEntryRow({super.key, required this.student, required this.configs});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    
+    final drafts = ref.watch(resultDraftProvider);
+    final studentDrafts = drafts[student.id] ?? {};
+
+    // Calculate Total strictly based on the draft map for real-time grading!
+    num totalScore = 0;
+    for (var score in studentDrafts.values) {
+      totalScore += num.tryParse(score) ?? 0;
+    }
+
+    final gradeInfo = HelperFunctions.calculateGrade(totalScore);
+
     return Padding(
-      padding: const EdgeInsets.all( Sizes.paddingM),
+      padding: const EdgeInsets.all(Sizes.paddingM),
       child: Row(
         children: [
-          // Student Info (Takes up most space)
+          // Student Info 
           Expanded(
             flex: 3,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  name,
+                  student.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.labelMedium?.copyWith(
@@ -192,7 +192,7 @@ class ResultEntryRow extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  studentId,
+                  student.regNumber,
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: theme.colorScheme.outlineVariant,
                     fontSize: 9,
@@ -203,12 +203,21 @@ class ResultEntryRow extends StatelessWidget {
           ),
           const SizedBox(width: Sizes.spaceS),
           
-          // Inputs
-          Expanded(flex: 2, child: _buildGradeInput(caScore, theme)),
-          const SizedBox(width: Sizes.spaceXS),
-          Expanded(flex: 2, child: _buildGradeInput(asScore, theme)),
-          const SizedBox(width: Sizes.spaceXS),
-          Expanded(flex: 2, child: _buildGradeInput(exScore, theme)),
+          // 🚨 DYNAMIC Inputs mapping the configs
+          ...configs.map((config) {
+            final currentVal = studentDrafts[config.id] ?? '';
+            return Expanded(
+              flex: 2, 
+              child: _buildGradeInput(
+                context,
+                value: currentVal.isEmpty ? '-' : currentVal, 
+                theme: theme, ref: ref, 
+                studentDrafts: studentDrafts
+                ),
+                
+            );
+          }),
+          
           const SizedBox(width: Sizes.spaceS),
           
           // Total & Grade
@@ -217,8 +226,10 @@ class ResultEntryRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(total, style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700)),
-                Text(grade, style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700, color: gradeColor)),
+                Text(totalScore.toString(), style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700)),
+                Text(
+                  drafts[student.id]==null?'-':
+                  gradeInfo.letter, style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700, color: gradeInfo.color)),
               ],
             ),
           ),
@@ -227,25 +238,47 @@ class ResultEntryRow extends StatelessWidget {
     );
   }
 
-  Widget _buildGradeInput(String value, ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(Sizes.radiusS),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(value, style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600)),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.keyboard_arrow_up, size: 10, color: theme.colorScheme.outlineVariant),
-              Icon(Icons.keyboard_arrow_down, size: 10, color: theme.colorScheme.outlineVariant),
-            ],
-          )
-        ],
+ Widget _buildGradeInput(context,{required String value, required ThemeData theme, required WidgetRef ref, required Map<String, String> studentDrafts}) {
+    return GestureDetector(
+      onTap: () {
+        // Read the subject name from the current filter to pass to the dialog
+        final subjectName = ref.read(resultFilterProvider)?.subjectName ?? 'Subject';
+        
+        EditGradeDialog.show(
+          context,
+          studentName: student.name,
+          subject: subjectName,
+          configs: configs,
+          initialScores: studentDrafts,
+          onSaveScore: (Map<String, String> updatedScores) {
+            // Using the updateStudentRecord method we created in the controller earlier
+            ref.read(resultDraftProvider.notifier).updateStudentRecord(
+              studentId: student.id, 
+              result: updatedScores
+            );
+          },
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(right: Sizes.spaceXS),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primaryContainer.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(Sizes.radiusS),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(value, style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600)),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.keyboard_arrow_up, size: 10, color: theme.colorScheme.outlineVariant),
+                Icon(Icons.keyboard_arrow_down, size: 10, color: theme.colorScheme.outlineVariant),
+              ],
+            )
+          ],
+        ),
       ),
     );
   }

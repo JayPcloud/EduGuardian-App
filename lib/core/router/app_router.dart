@@ -1,8 +1,8 @@
-import 'package:edu_guardian_app/shared_features/auth/presentation/providers/role_provider.dart';
 import 'package:edu_guardian_app/shared_features/auth/presentation/screens/select_role_screen.dart';
 import 'package:edu_guardian_app/shared_features/auth/presentation/screens/setup_2FA_screen.dart';
 import 'package:edu_guardian_app/shared_features/auth/presentation/screens/teachers_signup_screen.dart';
 import 'package:edu_guardian_app/teachers_features/dashboard/presentation/screens/teacher_dashboard_screen.dart';
+import 'package:edu_guardian_app/teachers_features/edu/data/models/teacher_class_model.dart';
 import 'package:edu_guardian_app/teachers_features/edu/presentation/screens/attendance_screen.dart';
 import 'package:edu_guardian_app/teachers_features/edu/presentation/screens/class_management_screen.dart';
 import 'package:edu_guardian_app/teachers_features/edu/presentation/screens/my_classes_screen.dart';
@@ -15,6 +15,8 @@ import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 // Parents Screens and Shell
+import '../../shared_features/auth/presentation/controllers/auth_status_controller.dart';
+import '../../shared_features/auth/presentation/controllers/role_provider.dart';
 import '../../shared_features/auth/presentation/screens/forgot_password_screen.dart';
 import '../../shared_features/auth/presentation/screens/login_screen.dart';
 import '../../shared_features/auth/presentation/screens/otp_verification_screen.dart';
@@ -24,9 +26,9 @@ import '../../parents_features/edu/presentation/screens/meeting_requested_succes
 import '../../parents_features/edu/presentation/screens/request_meeting_screen.dart';
 import 'package:edu_guardian_app/shared_features/messaging/presentation/screens/chat_detail_screen.dart';
 import 'package:edu_guardian_app/shared_features/messaging/presentation/screens/messages_screen.dart';
-import 'package:edu_guardian_app/parents_features/profile/presentation/screens/more_menu_screen.dart';
-import 'package:edu_guardian_app/parents_features/profile/presentation/screens/privacy_security_screen.dart';
-import 'package:edu_guardian_app/parents_features/profile/presentation/screens/settings_screen.dart';
+import 'package:edu_guardian_app/shared_features/profile/presentation/screens/more_menu_screen.dart';
+import 'package:edu_guardian_app/shared_features/profile/presentation/screens/privacy_security_screen.dart';
+import 'package:edu_guardian_app/shared_features/profile/presentation/screens/settings_screen.dart';
 import '../../shared_features/auth/presentation/screens/new_password_screen.dart';
 import '../../parents_features/dashboard/presentation/screens/behaviour_screen.dart';
 import '../../parents_features/dashboard/presentation/screens/home_dashboard_screen.dart';
@@ -34,24 +36,74 @@ import '../../parents_features/edu/presentation/screens/academic_preformance_scr
 import '../../parents_features/edu/presentation/screens/attendance_screen.dart';
 import '../../parents_features/edu/presentation/screens/badges_screen.dart';
 import '../../parents_features/notifications/presentation/screens/alerts_screen.dart';
-import '../../parents_features/profile/presentation/screens/change_password_screen.dart';
+import '../../shared_features/profile/presentation/screens/change_password_screen.dart';
+import '../enums/enums.dart';
 import '../widgets/navigation/main_navigation_shell.dart';
 import 'app_routes.dart';
 
-part 'app_router.g.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> shellNavigatorKey = GlobalKey<NavigatorState>();
+bool _hasRemovedSplash = false;
 
-@riverpod
-GoRouter router(Ref ref) {
+// Public routes that unauthenticated users can access
+const _publicRoutes = [
+  AppRoutes.selectRole,
+  AppRoutes.login,
+  AppRoutes.parentsSignup,
+  AppRoutes.teachersSignup,
+  AppRoutes.forgotPassword,
+  AppRoutes.otpVerification,
+  AppRoutes.newPassword,
+];
+
+final routerProvider = Provider<GoRouter>((ref) {
+  // Use ValueNotifier so GoRouter reacts automatically to auth changes
+  final authState = ref.read(authStatusNotifierProvider);
+  final authNotifier = ValueNotifier(authState);
+
+  ref.listen(authStatusNotifierProvider, (_, next) {
+    authNotifier.value = next;
+  });
+
   return GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: AppRoutes.selectRole, 
     debugLogDiagnostics: true,
-    
-    // TODO: Add back auth redirect logic here later
-    // redirect: (context, state) { ... },
+    refreshListenable: authNotifier,
+
+    redirect: (context, state) {
+      final auth = authNotifier.value;
+      final currentLocation = state.matchedLocation;
+
+      // 1. Remove Splash Screen once data is loaded (or if there's no cached data)
+      if (!auth.isLoading && !_hasRemovedSplash) {
+        _hasRemovedSplash = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          // FlutterNativeSplash.remove();
+        });
+      }
+
+      // Allow loading screen to process without interruption
+      if (auth.isLoading) return null; 
+
+      final user = auth.valueOrNull;
+      final isLoggedIn = user != null;
+      final isGoingToPublicRoute = _publicRoutes.contains(currentLocation);
+
+      // 2. Auth Guard: Not logged in trying to access secure pages
+      if (!isLoggedIn && !isGoingToPublicRoute) {
+        return AppRoutes.selectRole; // Kick to role selection
+      }
+
+      // 3. Reverse Auth Guard: Logged in trying to access login/signup pages
+      if (isLoggedIn && isGoingToPublicRoute) {
+        // ref.read(roleProvider.notifier).setRole(user.role);
+        return AppRoutes.homeDashboard; 
+      }
+
+      return null; // All clear
+    },
 
     routes: [
       // -------------------------------------------------------------------
@@ -66,59 +118,53 @@ GoRouter router(Ref ref) {
             child: child, 
           );
         },
-        routes: ref.watch(roleProvider)==UserRole.teacher
-        ?[
+        routes: [
+          // ── SHARED PATHS (We swap the screen, not the route) ──
           GoRoute(
             path: AppRoutes.homeDashboard,
             name: 'home-dashboard',
-            builder: (context, state) => const TeacherDashboardScreen(), 
+            builder: (context, state) => ref.read(roleProvider) == UserRole.teacher
+                ? const TeacherDashboardScreen() 
+                : const ParentDashboardScreen(), 
           ),
+          GoRoute(
+            path: AppRoutes.attendance,
+            name: 'attendance',
+            builder: (context, state) {
+              final classId = state.extra as String?;
+              return  ref.read(roleProvider) == UserRole.teacher
+                ? TeachersAttendanceScreen(classId: classId,) 
+                : const ParentsAttendanceScreen();
+            }
+          ),
+          GoRoute(
+            path: AppRoutes.messaging,
+            name: 'messaging',
+            builder: (context, state) => const MessagesScreen(), 
+          ),
+
+          // ── TEACHER ONLY PATHS ──
           GoRoute(
             path: AppRoutes.classes,
             name: 'classes',
             builder: (context, state) => const MyClassesScreen(), 
           ),
           GoRoute(
-            path: AppRoutes.attendance,
-            name: 'attendance',
-            builder: (context, state) => const TeachersAttendanceScreen(), 
-          ),
-          GoRoute(
-            path: AppRoutes.messaging,
-            name: 'messaging',
-            builder: (context, state) => const MessagesScreen(), 
-          ),
-          GoRoute(
             path: AppRoutes.teachersProfile,
             name: 'teacher-profile',
-            builder: (context, state) => const SettingsScreen(), // Placeholder
+            builder: (context, state) => const SettingsScreen(), 
           ),
-        ]
-        :[
-          GoRoute(
-            path: AppRoutes.homeDashboard,
-            name: 'home-dashboard',
-            builder: (context, state) => const ParentDashboardScreen(), 
-          ),
+
+          // ── PARENT ONLY PATHS ──
           GoRoute(
             path: AppRoutes.academic,
             name: 'academic',
             builder: (context, state) => const AcademicPerformanceScreen(), 
           ),
           GoRoute(
-            path: AppRoutes.attendance,
-            name: 'attendance',
-            builder: (context, state) => const ParentsAttendanceScreen(), 
-          ),
-          GoRoute(
-            path: AppRoutes.messaging,
-            name: 'messaging',
-            builder: (context, state) => const MessagesScreen(), 
-          ),
-          GoRoute(
             path: AppRoutes.more,
             name: 'more',
-            builder: (context, state) => const MoreMenuScreen(), // Placeholder
+            builder: (context, state) => const MoreMenuScreen(), 
           ),
         ],
       ),
@@ -225,7 +271,11 @@ GoRouter router(Ref ref) {
         path: AppRoutes.classManagement,
         name: 'class-management',
         parentNavigatorKey: rootNavigatorKey, 
-        builder: (context, state) => const ClassManagementScreen(), 
+        builder: (context, state) {
+          final classId = state.extra as String?;
+          if(classId==null)return Scaffold(body: Center(child: Text('Class id not provided'),),);
+          return ClassManagementScreen(classId: classId,);
+        }  
       ),
       GoRoute(
         path: AppRoutes.studentProfileScreen,
@@ -276,7 +326,7 @@ GoRouter router(Ref ref) {
       
     ],
   );
-}
+});
 
 // --- HELPER FUNCTIONS FOR BOTTOM NAV LOGIC ---
 

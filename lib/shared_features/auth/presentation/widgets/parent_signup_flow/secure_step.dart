@@ -1,10 +1,14 @@
-import 'package:edu_guardian_app/core/widgets/containers/round_rect_border.dart';
-import 'package:edu_guardian_app/core/widgets/inputs/labeled_text_field.dart';
 import 'package:flutter/material.dart';
 import '../../../../../core/constants/app_sizes.dart';
+import '../../../../../core/utility/form_validators.dart';
+import '../../../../../core/widgets/containers/round_rect_border.dart';
+import 'package:edu_guardian_app/core/widgets/inputs/labeled_text_field.dart';
 
 class SecureStep extends StatelessWidget {
-  const SecureStep({super.key});
+  final TextEditingController passwordController;
+  final TextEditingController confirmController;
+
+  const SecureStep({super.key, required this.passwordController, required this.confirmController});
 
   @override
   Widget build(BuildContext context) {
@@ -18,43 +22,30 @@ class SecureStep extends StatelessWidget {
           RichText(
             text: TextSpan(
               text: "Create your ",
-              style: textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: colorScheme.onSurface,
-              ),
+              style: textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold, color: colorScheme.onSurface),
               children: [
                 TextSpan(
                   text: "password.",
-                  style: textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.primary,
-                  ),
+                  style: textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold, color: colorScheme.primary),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: Sizes.spaceSm),
-          RichText(
-            text: TextSpan(
-              text: "You'll use this with ",
-              style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
-              children: [
-                TextSpan(
-                  text: "chukwukaigboaka@gmail.com",
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onSurface,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const TextSpan(text: " to sign in."),
               ],
             ),
           ),
           const SizedBox(height: Sizes.spaceXXL),
           
-          LabeledTextField(label: 'Password', obscureText: true,),
+          LabeledTextField(
+            label: 'Password', 
+            obscureText: true,
+            controller: passwordController,
+            validator: FormValidators.validatePassword,
+          ),
           const SizedBox(height: Sizes.spaceM),
-          LabeledTextField(label: 'Confirm password', obscureText: true,),
+          LabeledTextField(
+            label: 'Confirm password', 
+            obscureText: true,
+            controller: confirmController,
+            validator: (val) => FormValidators.validateConfirmPassword(val, passwordController.text),
+          ),
           const SizedBox(height: Sizes.spaceL),
 
           // Validation Checklist Card
@@ -83,15 +74,15 @@ class SecureStep extends StatelessWidget {
             padding: const EdgeInsets.all(2),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: colorScheme.primaryContainer, 
+              color: isValid ? colorScheme.primaryContainer : colorScheme.surfaceContainerHighest, 
             ),
-            child: Icon(Icons.check, size: 10, color: colorScheme.primary),
+            child: Icon(Icons.check, size: 10, color: isValid ? colorScheme.primary : colorScheme.outline),
           ),
           const SizedBox(width: Sizes.spaceS),
           Text(
             text,
             style: textTheme.bodySmall?.copyWith(
-              color: colorScheme.primary,
+              color: isValid ? colorScheme.primary : colorScheme.outline,
               fontWeight: FontWeight.w500,
             ),
           )

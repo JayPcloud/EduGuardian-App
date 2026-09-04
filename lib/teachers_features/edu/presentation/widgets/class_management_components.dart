@@ -1,15 +1,22 @@
 import 'package:edu_guardian_app/core/constants/spacing_style.dart';
 import 'package:edu_guardian_app/core/router/app_routes.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:shimmer/shimmer.dart';
 import '../../../../core/constants/app_decorations.dart';
 import '../../../../core/constants/app_sizes.dart';
+import '../../../../core/utility/helper_functions.dart';
+import '../../../../core/widgets/common/app_error_widget.dart';
+import '../../data/models/teacher_class_model.dart';
+import '../controllers/my_classes_providers.dart';
 import 'edit_grade_dialog.dart';
 
 // --- HERO CARD --------------------------------------------------///
 class ClassHeroCard extends StatelessWidget {
-  const ClassHeroCard({super.key});
+  const ClassHeroCard({super.key, required this.attendancePercent, required this.totalStudents, required this.excellentStudentsCount});
+  final String totalStudents,attendancePercent, excellentStudentsCount;
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +71,7 @@ class ClassHeroCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    '35',
+                    totalStudents,
                     style: theme.textTheme.headlineMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w700),
                   ),
                   Text(
@@ -81,8 +88,8 @@ class ClassHeroCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildHeroStat('85%', 'Attendance', theme),
-              _buildHeroStat('5', 'Excellent', theme),
+              _buildHeroStat('$attendancePercent%', 'Attendance', theme),
+              _buildHeroStat(excellentStudentsCount, 'Excellent', theme),
               _buildHeroStat('2', 'Need support', theme),
             ],
           )
@@ -109,7 +116,9 @@ class ClassHeroCard extends StatelessWidget {
 
 // --- OVERVIEW SECTION --------------------------------------------------///
 class ClassOverviewSection extends StatelessWidget {
-  const ClassOverviewSection({super.key});
+  final TeacherClassModel classDetails; // 🚨 Pass in the data
+
+  const ClassOverviewSection({super.key, required this.classDetails});
 
   @override
   Widget build(BuildContext context) {
@@ -133,56 +142,88 @@ class ClassOverviewSection extends StatelessWidget {
           ),
           const SizedBox(height: Sizes.spaceXXL),
           
-          // Top of the class
+          // 🚨 Top of the class (Dynamic)
           Text('Top of the class', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: Sizes.spaceM),
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: Sizes.paddingS),
-            decoration: BoxDecoration(
-              border: Border.all(color: theme.colorScheme.outline),
-              borderRadius: BorderRadius.circular(Sizes.radiusL),
+          if (classDetails.topOfTheClass.isEmpty)
+            const Text("No data available.")
+          else
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: Sizes.paddingS),
+              decoration: BoxDecoration(
+                border: Border.all(color: theme.colorScheme.outline),
+                borderRadius: BorderRadius.circular(Sizes.radiusL),
+              ),
+              child: Column(
+                children: classDetails.topOfTheClass.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final student = entry.value;
+                  final isLast = index == classDetails.topOfTheClass.length - 1;
+                  final remark = HelperFunctions.getGradeRemark(student.percentage);
+                  return Column(
+                    children: [
+                      _buildStudentListTile(
+                        student.name, 
+                        '${student.percentage}% attendance . $remark', 
+                        const Color(0xFF00BFA5), 
+                        LucideIcons.award, 
+                        theme
+                      ),
+                      if (!isLast) Divider(height: 1, color: theme.colorScheme.outline.withValues(alpha: 0.1)),
+                    ],
+                  );
+                }).toList(),
+              ),
             ),
-            child: Column(
-              children: [
-                _buildStudentListTile('Ifeoma Eze', '78% attendance . Excellent', const Color(0xFF00BFA5), LucideIcons.award, theme),
-                Divider(height: 1, color: theme.colorScheme.outline.withValues(alpha: 0.1)),
-                _buildStudentListTile('Ifeoma Eze', '78% attendance . Excellent', const Color(0xFF00BFA5), LucideIcons.award, theme),
-                Divider(height: 1, color: theme.colorScheme.outline.withValues(alpha: 0.1)),
-                _buildStudentListTile('Ifeoma Eze', '78% attendance . Excellent', const Color(0xFF00BFA5), LucideIcons.award, theme),
-              ],
-            ),
-          ),
           const SizedBox(height: Sizes.spaceXL),
           
-          // Needs your attention
+          // 🚨 Needs your attention (Dynamic)
           Text('Needs your attention', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: Sizes.spaceM),
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: Sizes.paddingS),
-            decoration: BoxDecoration(
-              border: Border.all(color: theme.colorScheme.outline),
-              borderRadius: BorderRadius.circular(Sizes.radiusL),
+          if (classDetails.needsAttention.isEmpty)
+            const Text("All students are performing well.")
+          else
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: Sizes.paddingS),
+              decoration: BoxDecoration(
+                border: Border.all(color: theme.colorScheme.outline),
+                borderRadius: BorderRadius.circular(Sizes.radiusL),
+              ),
+              child: Column(
+                children: classDetails.needsAttention.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final student = entry.value;
+                  final isLast = index == classDetails.needsAttention.length - 1;
+
+                  return Column(
+                    children: [
+                      _buildStudentListTile(
+                        student.name, 
+                        'Follow up recommended', 
+                        const Color(0xFFF44336), 
+                        LucideIcons.alertTriangle, 
+                        theme, 
+                        isAlert: true
+                      ),
+                      if (!isLast) Divider(height: 1, color: theme.colorScheme.outline.withValues(alpha: 0.1)),
+                    ],
+                  );
+                }).toList(),
+              ),
             ),
-            child: Column(
-              children: [
-                _buildStudentListTile('Obu Emmanuel', 'Follow up recommended', const Color(0xFFF44336), LucideIcons.alertTriangle, theme, isAlert: true),
-                Divider(height: 1, color: theme.colorScheme.outline.withValues(alpha: 0.1)),
-                _buildStudentListTile('Ifeoma Eze', 'Follow up recommended', const Color(0xFFF44336), LucideIcons.alertTriangle, theme, isAlert: true),
-              ],
-            ),
-          ),
+          const SizedBox(height: Sizes.spaceXL),
         ],
       ),
     );
   }
 
+  // Helpers (Untouched logic)
   Widget _buildQuickAction(String label, IconData icon, Color color, ThemeData theme, {bool isOutlined = false, VoidCallback? onTap}) {
     return Expanded(
       child: Column(
         children: [
           InkWell(
-            onTap: onTap??(){},
-            borderRadius: AppSpacingStyle.allBorderRdMd,
+            onTap: onTap ?? () {},
             child: Container(
               height: 56,
               width: 56,
@@ -227,8 +268,8 @@ class ClassOverviewSection extends StatelessWidget {
 
 // --- ATTENDANCE SECTION -------------------------------------------------------------///
 class ClassAttendanceSection extends StatelessWidget {
-  const ClassAttendanceSection({super.key});
-
+  const ClassAttendanceSection({super.key, this.classId});
+  final String? classId;
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -257,7 +298,7 @@ class ClassAttendanceSection extends StatelessWidget {
                 Text('32 students to mark', style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onSurface)),
                 const SizedBox(height: Sizes.spaceL),
                 ElevatedButton.icon(
-                  onPressed: () {},
+                  onPressed: ()=> context.go( AppRoutes.attendance, extra: classId),
                   icon: const Icon(LucideIcons.edit3, size: 14, color: Colors.white),
                   label: Text('Mark Attendance', style: theme.textTheme.labelMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w600)),
                   style: ElevatedButton.styleFrom(
@@ -392,31 +433,77 @@ class ClassResultsSection extends StatelessWidget {
 
 
 // --- STUDENTS SECTION ------------------------------------------------------------///
-class ClassStudentsSection extends StatelessWidget {
-  const ClassStudentsSection({super.key});
+class ClassStudentsSection extends ConsumerWidget {
+  final String classId, subject; // 🚨 Accepts the class ID to fetch data
+  const ClassStudentsSection({super.key, required this.classId, required this.subject});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final studentsAsync = ref.watch(classStudentsProvider(classId));
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal:Sizes.paddingL),
-      child: Column(
-        children: [
-          _buildStudentCard('Ifeoma Eze', 'EDU/JSS3A/001', 'https://i.pravatar.cc/150?img=1', theme, context),
-          _buildStudentCard('Joy Ejikeme', 'EDU/JSS3A/001', 'https://i.pravatar.cc/150?img=5', theme, context),
-          _buildStudentCard('Julius Ikemefuna', 'EDU/JSS3A/001', 'https://i.pravatar.cc/150?img=11', theme, context),
-          _buildStudentCard('Cyril Ekpe', 'EDU/JSS3A/001', 'https://i.pravatar.cc/150?img=12', theme, context),
-          _buildStudentCard('Ifeoma Eze', 'EDU/JSS3A/001', 'https://i.pravatar.cc/150?img=9', theme, context),
-          _buildStudentCard('Ifeoma Eze', 'EDU/JSS3A/001', 'https://i.pravatar.cc/150?img=8', theme, context),
-        ],
+      padding: const EdgeInsets.symmetric(horizontal: Sizes.paddingL),
+      child: studentsAsync.when(
+        skipLoadingOnRefresh: false,
+        loading: () => _buildShimmer(theme), // 🚨 Built-in shimmer
+        error: (err, stack) => AppErrorWidget(
+          message: err.toString(),
+          onlyErrorMessage: true,
+          onRetry: () => ref.invalidate(classStudentsProvider(classId)),
+        ),
+        data: (students) {
+          if (students.isEmpty) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(Sizes.paddingL),
+                child: Text("No students found in this class."),
+              ),
+            );
+          }
+
+          return Column(
+            children: students.map((student) {
+              return _buildStudentCard(
+                name: student.name, 
+                studentId: student.regNumber, 
+                avatarUrl: 'https://i.pravatar.cc/150?u=${student.id}', // Deterministic placeholder avatar based on ID
+                subject:subject,
+                theme, 
+                context,
+              );
+            }).toList(),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildStudentCard(String name, String studentId, String avatarUrl, ThemeData theme, BuildContext context) {
+  // 🚨 Built-in Shimmer requested
+  Widget _buildShimmer(ThemeData theme) {
+    final isDark = theme.brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.grey[850]! : Colors.grey[300]!;
+    final highlightColor = isDark ? Colors.grey[700]! : Colors.grey[100]!;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: Column(
+        children: List.generate(5, (index) => Container(
+          margin: const EdgeInsets.only(bottom: Sizes.spaceM),
+          height: 80,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(Sizes.radiusXL),
+          ),
+        )),
+      ),
+    );
+  }
+
+  Widget _buildStudentCard(ThemeData theme, BuildContext context, {required String subject, required String name, required String studentId, required String avatarUrl}) {
     return InkWell(
-      onTap: ()=> context.push(AppRoutes.studentProfileScreen),
+      onTap: () => context.push(AppRoutes.studentProfileScreen),
       borderRadius: BorderRadius.circular(Sizes.radiusXL),
       child: Container(
         margin: const EdgeInsets.only(bottom: Sizes.spaceM),
@@ -456,11 +543,14 @@ class ClassStudentsSection extends StatelessWidget {
               ),
             ),
             InkWell(
-              onTap: ()=> showDialog(
+              onTap: () => showDialog(
                 context: context,
-                builder: (context) => const EditGradeDialog(
-                  studentName: 'Ifeoma Eze',
-                  subject: 'Mathematics',
+                builder: (context) => EditGradeDialog(
+                  configs: [],
+                  initialScores: {}, 
+                  studentName: name, 
+                  subject: subject, 
+                  onSaveScore: (String ) {},
                 ),
               ),
               borderRadius: BorderRadius.circular(Sizes.radiusXL),

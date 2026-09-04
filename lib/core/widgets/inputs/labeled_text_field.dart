@@ -12,6 +12,7 @@ class LabeledTextField extends StatelessWidget {
     this.keyboardType,
     this.suffixIcon,
     this.onChanged,
+    this.validator,
   });
 
   final String label;
@@ -22,6 +23,7 @@ class LabeledTextField extends StatelessWidget {
   final TextInputType? keyboardType;
   final Widget? suffixIcon;
   final ValueChanged<String>? onChanged;
+  final String? Function(String?)? validator;
 
   @override
   Widget build(BuildContext context) {
@@ -41,10 +43,12 @@ class LabeledTextField extends StatelessWidget {
           obscureText: obscureText,
           keyboardType: keyboardType,
           onChanged: onChanged,
+          validator: validator,
           decoration: InputDecoration(
             hintText: hintText,
             prefixIcon:
-                prefixIcon != null ? Icon(prefixIcon, size: Sizes.iconS) : null,
+                prefixIcon != null ? 
+                   Icon(prefixIcon, size: Sizes.iconS) : null,
             suffixIcon: suffixIcon,
           ),
         ),
