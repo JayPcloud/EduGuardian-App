@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../messaging/services/pusher_service.dart';
 import '../../data/repositories/auth_repository.dart';
 import 'auth_status_controller.dart';
 
@@ -17,6 +18,7 @@ class AuthController extends Notifier<AsyncValue<void>> {
       // Update global auth status here if needed
       state = const AsyncData(null);
       ref.read(authStatusNotifierProvider.notifier).updateState(user, cacheUser: false);
+      ref.read(pusherServiceProvider).initGlobalChannel(user.id);
     } catch (e) {
       state = AsyncError(e, StackTrace.current);
       rethrow;

@@ -18,6 +18,11 @@ class TeacherAttendanceRemoteDataSource {
     return response.data;
   }
 
+  Future<Map<String, dynamic>> getWeeklyMetrics(Map<String, dynamic> payload) async {
+    final response = await _client.dio.get('attendance/weekly-metrics', data: payload);
+    return response.data;
+  }
+
   Future<void> markAttendance(Map<String, dynamic> payload) async {
     await _client.dio.post('attendance/mark', data: payload);
   }

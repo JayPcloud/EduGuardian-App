@@ -1,3 +1,13 @@
+class ActiveAcademicSessionInfo {
+  final String sessionId;
+  final String term;
+
+  ActiveAcademicSessionInfo({
+    required this.sessionId,
+    required this.term,
+  });
+}
+
 class TeacherDashboardStatsModel {
   final int totalClassAssigned;
   final int totalStudents;
@@ -17,6 +27,7 @@ class TeacherDashboardStatsModel {
     );
   }
 }
+
 
 class TeacherScheduleModel {
   final String timeH;

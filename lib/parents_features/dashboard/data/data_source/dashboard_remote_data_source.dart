@@ -10,11 +10,11 @@ class DashboardRemoteDataSource {
     return response.data;
   }
 
-  // Fetch all wards for the parent
-  // Future<Map<String, dynamic>> fetchMyWards() async {
-  //   final response = await _client.dio.get('guardian/my-students');
-  //   return response.data;
-  // }
+  Future<Map<String, dynamic>> getTimeline(String studentId) async {
+    final response = await _client.dio.get('guardian/students/$studentId/timetable');
+    return response.data;
+  }
+  
   
 }
 

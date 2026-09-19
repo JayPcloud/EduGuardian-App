@@ -17,8 +17,9 @@ import '../controllers/teacher_attendance_provider.dart';
 import '../widgets/attendance_components.dart';
 
 class TeachersAttendanceScreen extends ConsumerStatefulWidget {
-  const TeachersAttendanceScreen({super.key, this.classId});
+  const TeachersAttendanceScreen({super.key, this.classId, this.armId});
   final String? classId;
+  final String? armId;
 
   @override
   ConsumerState<TeachersAttendanceScreen> createState() => _TeachersAttendanceScreenState();
@@ -40,7 +41,7 @@ class _TeachersAttendanceScreenState extends ConsumerState<TeachersAttendanceScr
 
     // Initialize default filters
     Future.microtask(() => 
-      ref.read(teacherAttendanceRecordsProvider.notifier).initializeFilters(widget.classId)
+      ref.read(teacherAttendanceRecordsProvider.notifier).initializeFilters(widget.classId, widget.armId)
     );
   }
 
@@ -69,6 +70,11 @@ class _TeachersAttendanceScreenState extends ConsumerState<TeachersAttendanceScr
     final drafts = ref.watch(attendanceDraftProvider);
     final isFetchingMore = ref.read(teacherAttendanceRecordsProvider.notifier).isFetchingMore;
 
+    final currentClasses = ref.watch(teacherClassesProvider).valueOrNull?.classes ?? [];
+    final activeClass = filter != null && currentClasses.isNotEmpty
+        ? currentClasses.firstWhere((c) => c.id == filter.classId, orElse: () => currentClasses.first)
+        : null;
+        
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
@@ -148,19 +154,26 @@ class _TeachersAttendanceScreenState extends ConsumerState<TeachersAttendanceScr
                         TeachersAttendanceFilterDropdown(
                           label: 'SUBJECT',
                           initialValue: filter.subjectName,
-                          // Get subjects for the currently selected class
-                          items: ref.read(teacherClassesProvider).valueOrNull?.classes
-                              .firstWhere((c) => c.id == filter.classId, orElse: () => ref.read(teacherClassesProvider).value!.classes.first)
-                              .subjects.map((s) => s.name).toList() ?? [],
+                          items: activeClass?.subjects.map((s) => s.name).toList() ?? [],
                           onSelected: (val) {
                              ref.read(attendanceFilterProvider.notifier).state = filter.copyWith(subjectName: val);
                           },
                         ),
                         const SizedBox(width: Sizes.spaceM),
-                        const TeachersAttendanceFilterDropdown(
-                          label: 'SESSION',
-                          initialValue: 'Morning',
-                          items: [], 
+                        
+                        // 🚨 REPLACED "SESSION" WITH DYNAMIC "CLASS ARM" DROPDOWN
+                        TeachersAttendanceFilterDropdown(
+                          label: 'CLASS ARM',
+                          initialValue: activeClass?.arms.firstWhere(
+                            (a) => a.id == filter.armId, 
+                            orElse: () => activeClass.arms.first
+                          ).name ?? '',
+                          items: activeClass?.arms.map((a) => a.name).toList() ?? [], 
+                          onSelected: (val) {
+                            if (activeClass == null) return;
+                            final selectedArm = activeClass.arms.firstWhere((a) => a.name == val);
+                            ref.read(attendanceFilterProvider.notifier).state = filter.copyWith(armId: selectedArm.id);
+                          },
                         ),
                       ],
                     ),

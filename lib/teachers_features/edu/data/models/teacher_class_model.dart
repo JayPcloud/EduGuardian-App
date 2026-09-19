@@ -137,3 +137,13 @@ class TeacherClassesDataModel {
     );
   }
 }
+
+
+class FlattenedClassData {
+  final TeacherClassModel parentClass;
+  final TeacherClassArmModel arm;
+
+  FlattenedClassData({required this.parentClass, required this.arm});
+
+  String get displayClassName => '${parentClass.name} ${arm.name}';
+}

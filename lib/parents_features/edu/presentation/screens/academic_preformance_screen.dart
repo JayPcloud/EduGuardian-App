@@ -1,11 +1,9 @@
-import 'package:edu_guardian_app/core/router/app_routes.dart';
-import 'package:edu_guardian_app/core/widgets/buttons/primary_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/widgets/common/app_error_widget.dart';
 import '../../../../core/widgets/common/app_refresh_indicator.dart';
+import '../../../dashboard/data/models/student_model.dart';
 import '../../../dashboard/presentation/controllers/student_providers.dart';
 import '../controllers/academic_providers.dart';
 import '../widgets/academic_widgets.dart';
@@ -14,7 +12,6 @@ import '../widgets/academic_widgets.dart';
 class AcademicPerformanceScreen extends ConsumerWidget {
   const AcademicPerformanceScreen({super.key});
 
-  // Helper to map grades to colors dynamically
   Color _getGradeColor(String grade, ColorScheme colorScheme) {
     switch (grade.toUpperCase()) {
       case 'A': return Colors.green;
@@ -33,8 +30,52 @@ class AcademicPerformanceScreen extends ConsumerWidget {
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
 
+    final activeWard = ref.watch(activeWardProvider);
     final performanceAsync = ref.watch(academicPerformanceProvider);
-    final term = ref.watch(activeWardProvider)?.term;
+    final filterState = ref.watch(academicFilterProvider);
+    final filterNotifier = ref.read(academicFilterProvider.notifier);
+
+    final Map<String, PreviousClassModel> classMap = {};
+    
+    if (activeWard?.schoolClass != null) {
+      final className = '${activeWard!.schoolClass!.name} ${activeWard.classArm?.name ?? ''}'.trim();
+      classMap[className] = PreviousClassModel(
+        schoolClass: activeWard.schoolClass,
+        classArm: activeWard.classArm,
+      );
+    }
+    
+    // Add previous classes ONLY if they aren't already in the map
+    for (var prev in activeWard?.previousClasses ?? <PreviousClassModel>[]) {
+      if (prev.schoolClass != null) {
+        final className = '${prev.schoolClass!.name} ${prev.classArm?.name ?? ''}'.trim();
+        if (!classMap.containsKey(className)) {
+          classMap[className] = prev;
+        }
+      }
+    }
+    
+    final classNamesList = classMap.keys.toList();
+    final currentClassName = filterState.classId == null 
+        ? ('${activeWard?.schoolClass?.name ?? ''} ${activeWard?.classArm?.name ?? ''}'.trim().isNotEmpty ? '${activeWard?.schoolClass?.name ?? ''} ${activeWard?.classArm?.name ?? ''}'.trim() : 'Class') 
+        : classNamesList.firstWhere(
+            (k) => classMap[k]?.schoolClass?.id == filterState.classId, 
+            orElse: () => 'Class'
+          );
+
+    // 2. TERM MAPPING
+    final termMap = {
+      '1st Term': '1',
+      '2nd Term': '2',
+      '3rd Term': '3'
+    };
+    final currentTermLabel = termMap.entries
+        .firstWhere((e) => e.value == (filterState.term ?? activeWard?.term), orElse: () => const MapEntry('Term', '1'))
+        .key;
+
+    // 3. DYNAMIC SUBJECT LIST (Extracted from loaded API data)
+    final allLoadedSubjects = performanceAsync.valueOrNull ?? [];
+    final subjectNames = ['All Subjects', ...allLoadedSubjects.map((e) => e.subjectName).toSet().toList()];
 
     return Scaffold(
       appBar: AppBar(
@@ -42,43 +83,56 @@ class AcademicPerformanceScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Academic Performance', style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700, color: colorScheme.onPrimaryContainer)),
-            Text('Term $term · Week 8', style: textTheme.labelSmall?.copyWith(color: colorScheme.outlineVariant)),
+            Text('$currentClassName · $currentTermLabel', style: textTheme.labelSmall?.copyWith(color: colorScheme.outlineVariant)),
           ],
         ),
       ),
       body: AppRefreshIndicator(
-        onRefresh: ()=> ref.invalidate(academicPerformanceProvider),
+        onRefresh: () => ref.invalidate(academicPerformanceProvider),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(Sizes.paddingL),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Dropdowns (Untouched)
               FittedBox(
                 child: Row(
                   children: [
-                    AcademicFilterDropdown(
-                      initialLabel: 'Class',
-                      items: const ['JSS 1', 'JSS 2', 'JSS 3', 'SSS 1', 'SSS 2', 'SSS 3'],
-                      onSelected: (val) {
-                        // TODO: Handle class filter
-                      },
-                    ),
+                    // CLASS DROPDOWN
+                    if (classNamesList.isNotEmpty)
+                      AcademicFilterDropdown(
+                        initialLabel: currentClassName,
+                        items: classNamesList,
+                        onSelected: (val) {
+                          final selectedClassData = classMap[val];
+                          filterNotifier.state = filterState.copyWith(
+                            classId: selectedClassData?.schoolClass?.id,
+                            armId: selectedClassData?.classArm?.id,
+                            clearSubject: true, // Reset subject when class changes
+                          );
+                        },
+                      ),
                     const SizedBox(width: Sizes.spaceS),
+                    
+                    // TERM DROPDOWN
                     AcademicFilterDropdown(
-                      initialLabel: 'Term',
+                      initialLabel: currentTermLabel,
                       isBlueText: true,
-                      items: const ['1st Term', '2nd Term', '3rd Term'],
+                      items: termMap.keys.toList(),
                       onSelected: (val) {
-                        // TODO: Handle term filter
+                        filterNotifier.state = filterState.copyWith(
+                          term: termMap[val],
+                          clearSubject: true, // Reset subject when term changes
+                        );
                       },
                     ),
                     const SizedBox(width: Sizes.spaceS),
+                    
+                    // SUBJECT DROPDOWN
                     AcademicFilterDropdown(
-                      initialLabel: 'Subject',
-                      items: const ['Mathematics', 'English Language', 'Chemistry', 'Physics', 'Business Studies', 'Accounting'],
+                      initialLabel: filterState.subjectName ?? 'Subject',
+                      items: subjectNames,
                       onSelected: (val) {
-                        // TODO: Handle subject filter
+                        filterNotifier.state = filterState.copyWith(subjectName: val);
                       },
                     ),
                   ],
@@ -89,28 +143,36 @@ class AcademicPerformanceScreen extends ConsumerWidget {
               const SizedBox(height: Sizes.spaceM),
         
               // 🚨 WIRING API DATA TO UI
+              // 🚨 WIRING API DATA TO UI
               performanceAsync.when(
                 skipLoadingOnRefresh: false,
                 loading: () => const AcademicShimmer(),
                 error: (err, stack) => AppErrorWidget(
                     message: err.toString(),
-                    onRetry: () {
-                      // This forces Riverpod to fetch the data again!
-                      ref.invalidate(academicPerformanceProvider);
-                    },
+                    onRetry: () => ref.invalidate(academicPerformanceProvider),
                   ),
                 data: (subjects) {
-                  if (subjects.isEmpty) {
-                    return const Center(child: Text("No academic records found."));
+                  
+                  // 🚨 APPLY LOCAL SUBJECT FILTERING HERE
+                  final filteredSubjects = (filterState.subjectName == null || filterState.subjectName == 'All Subjects') 
+                      ? subjects 
+                      : subjects.where((s) => s.subjectName == filterState.subjectName).toList();
+
+                  if (filteredSubjects.isEmpty) {
+                    return const Padding(
+                      padding: EdgeInsets.only(top: 40),
+                      child: Center(child: Text("No academic records found for this selection.", style: TextStyle(color: Colors.grey))),
+                    );
                   }
+                  
                   return Column(
-                    children: subjects.map((subject) {
+                    children: filteredSubjects.map((subject) {
                       final color = _getGradeColor(subject.grade, colorScheme);
                       return _buildSubjectCard(
                         title: subject.subjectName,
                         score: subject.percentage,
-                        grade: subject.grade, // Pass the actual grade
-                        trend: 0, // Default trend since API doesn't provide it yet
+                        grade: subject.grade,
+                        trend: 0, 
                         barColor: color,
                         theme: theme,
                       );
@@ -122,13 +184,6 @@ class AcademicPerformanceScreen extends ConsumerWidget {
           ),
         ),
       ),
-      // bottomNavigationBar: Padding(
-      //   padding: const EdgeInsets.all(Sizes.paddingL),
-      //   child: PrimaryButton(
-      //     label: 'Request a meeting with teacher', 
-      //     onPressed: () => context.push(AppRoutes.requestMeeting),
-      //   )
-      // ),
     );
   }
 

@@ -79,7 +79,7 @@ class ParentDashboardScreen extends ConsumerWidget {
           
                       // 🚨 DYNAMIC TIMELINE WIRING
                       timelineAsync.when(
-                        loading: () => const SizedBox.shrink(), // Shimmer handles this above already
+                        loading: () => const DashboardTimelineShimmer(itemCount: 3), // Shimmer handles this above already
                         error: (err, stack) => const Text('Failed to load timeline. Pull to refresh page'),
                         data: (timelineItems) {
                           if (timelineItems.isEmpty) {

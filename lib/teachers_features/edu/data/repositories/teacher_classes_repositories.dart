@@ -27,9 +27,9 @@ class TeacherClassesRepository {
     }
   }
 
-  Future<List<TeacherClassStudentModel>> getClassStudents(String classId) async {
+  Future<List<TeacherClassStudentModel>> getClassStudents(String classId, String armId) async {
     try {
-      final response = await remote.getClassStudents(classId);
+      final response = await remote.getClassStudents(classId, armId);
       final List data = response['data'] ?? [];
       return data.map((s) => TeacherClassStudentModel.fromJson(s)).toList();
     } catch (e) {

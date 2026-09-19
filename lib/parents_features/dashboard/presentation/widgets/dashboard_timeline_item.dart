@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
 import '../../../../../core/constants/app_sizes.dart';
 import '../../../../../core/theme/app_colors.dart';
 
@@ -184,5 +185,121 @@ class _DashedLinePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _DashedLinePainter oldDelegate) {
     return oldDelegate.color != color;
+  }
+}
+
+
+class DashboardTimelineShimmer extends StatelessWidget {
+  final int itemCount;
+  
+  const DashboardTimelineShimmer({super.key, this.itemCount = 3});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.grey[850]! : Colors.grey[300]!;
+    final highlightColor = isDark ? Colors.grey[700]! : Colors.grey[100]!;
+    final shimmerContentColor = isDark ? Colors.black : Colors.white;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: Column(
+        children: List.generate(itemCount, (index) {
+          final isFirst = index == 0;
+          final isLast = index == itemCount - 1;
+
+          return IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Shimmer for the Timeline Line and Dot
+                SizedBox(
+                  width: 24,
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: isFirst 
+                          ? const SizedBox() 
+                          : Container(width: 2, color: shimmerContentColor),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4.0),
+                        child: Container(
+                          width: 24,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: shimmerContentColor,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: isLast 
+                          ? const SizedBox() 
+                          : Container(width: 2, color: shimmerContentColor),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: Sizes.spaceM),
+                
+                // Shimmer for the Timeline Card
+                Expanded(
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: Sizes.spaceL),
+                    padding: const EdgeInsets.all(Sizes.paddingM),
+                    decoration: BoxDecoration(
+                      color: shimmerContentColor,
+                      borderRadius: BorderRadius.circular(Sizes.radiusM),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Title Placeholder
+                            Container(
+                              height: 14,
+                              width: MediaQuery.of(context).size.width * 0.35,
+                              decoration: BoxDecoration(
+                                color: shimmerContentColor,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                            // Time Placeholder
+                            Container(
+                              height: 12,
+                              width: 60,
+                              decoration: BoxDecoration(
+                                color: shimmerContentColor,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: Sizes.spaceM),
+                        // Subtitle Placeholder
+                        Container(
+                          height: 12,
+                          width: MediaQuery.of(context).size.width * 0.5,
+                          decoration: BoxDecoration(
+                            color: shimmerContentColor,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              ],
+            ),
+          );
+        }),
+      ),
+    );
   }
 }

@@ -89,3 +89,36 @@ class TeacherAttendanceMetricsModel {
     );
   }
 }
+
+
+class WeeklyMetricModel {
+  final DateTime date;
+  final String dayName;
+  final int present;
+  final int absent;
+  final int late;
+  final int excused;
+
+  WeeklyMetricModel({
+    required this.date,
+    required this.dayName,
+    required this.present,
+    required this.absent,
+    required this.late,
+    required this.excused,
+  });
+
+  factory WeeklyMetricModel.fromJson(Map<String, dynamic> json) {
+    return WeeklyMetricModel(
+      date: DateTime.tryParse(json['date'] ?? '') ?? DateTime.now(),
+      dayName: json['day_name'] ?? '',
+      present: json['present'] ?? 0,
+      absent: json['absent'] ?? 0,
+      late: json['late'] ?? 0,
+      excused: json['excused'] ?? 0,
+    );
+  }
+  
+  // Helper to quickly check if any attendance was marked this day
+  int get totalMarked => present + absent + late + excused;
+}

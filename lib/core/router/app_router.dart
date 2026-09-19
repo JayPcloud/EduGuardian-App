@@ -1,6 +1,8 @@
 import 'package:edu_guardian_app/shared_features/auth/presentation/screens/select_role_screen.dart';
 import 'package:edu_guardian_app/shared_features/auth/presentation/screens/setup_2FA_screen.dart';
 import 'package:edu_guardian_app/shared_features/auth/presentation/screens/teachers_signup_screen.dart';
+import 'package:edu_guardian_app/shared_features/messaging/data/models/chat_list_models.dart';
+import 'package:edu_guardian_app/shared_features/messaging/data/models/chat_route_model.dart';
 import 'package:edu_guardian_app/teachers_features/dashboard/presentation/screens/teacher_dashboard_screen.dart';
 import 'package:edu_guardian_app/teachers_features/edu/data/models/teacher_class_model.dart';
 import 'package:edu_guardian_app/teachers_features/edu/presentation/screens/attendance_screen.dart';
@@ -131,10 +133,14 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: AppRoutes.attendance,
             name: 'attendance',
             builder: (context, state) {
-              final classId = state.extra as String?;
-              return  ref.read(roleProvider) == UserRole.teacher
-                ? TeachersAttendanceScreen(classId: classId,) 
-                : const ParentsAttendanceScreen();
+              // 🚨 Extract the map if passed
+              final extra = state.extra as Map<String, dynamic>?;
+              return ref.read(roleProvider) == UserRole.teacher
+                  ? TeachersAttendanceScreen(
+                      classId: extra?['classId'] as String?,
+                      armId: extra?['armId'] as String?, // 🚨 Pass armId down
+                    ) 
+                  : const ParentsAttendanceScreen();
             }
           ),
           GoRoute(
@@ -265,16 +271,24 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.resultEntry,
         name: 'result-entry',
         parentNavigatorKey: rootNavigatorKey, 
-        builder: (context, state) => const ResultEntryScreen(), 
+        builder: (context, state) {
+          // 🚨 Extract the map if it was passed
+          final extra = state.extra as Map<String, dynamic>?;
+          return ResultEntryScreen(
+            classId: extra?['classId'] as String?,
+            armId: extra?['armId'] as String?,
+            subjectId: extra?['subjectId'] as String?,
+          );
+        }, 
       ),
       GoRoute(
         path: AppRoutes.classManagement,
         name: 'class-management',
         parentNavigatorKey: rootNavigatorKey, 
         builder: (context, state) {
-          final classId = state.extra as String?;
-          if(classId==null)return Scaffold(body: Center(child: Text('Class id not provided'),),);
-          return ClassManagementScreen(classId: classId,);
+          final classData = state.extra as FlattenedClassData?;
+          if(classData==null)return Scaffold(body: Center(child: Text('Class not provided'),),);
+          return ClassManagementScreen(classData: classData,);
         }  
       ),
       GoRoute(
@@ -289,7 +303,22 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.chatDetail,
         name: 'chat',
-        builder: (context, state) => const ChatDetailScreen(), // Placeholder
+        builder: (context, state) {
+          final extraData = state.extra as Map<String, dynamic>?;
+          final args = ChatRouteArgs(
+            id: extraData?['id'] ?? '',
+            recipientName: extraData?['recipientName'] ?? 'Unknown',
+            recipientRole: extraData?['recipientRole'] ?? '',
+            unreadCount: extraData?['unreadCount'] ?? 0,
+          );
+
+          if(extraData==null) {
+            return Scaffold(body: Center(child: Text('Conversation not found'),),);
+          }
+          return ChatDetailScreen(
+          args: args,
+          );
+        } // Placeholder
       ),
 
       // 'More' Routes

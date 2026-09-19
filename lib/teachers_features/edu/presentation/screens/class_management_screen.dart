@@ -4,14 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/widgets/common/app_error_widget.dart';
 import '../../../../core/widgets/common/app_refresh_indicator.dart';
+import '../../data/models/teacher_class_model.dart';
 import '../controllers/my_classes_providers.dart';
 import '../widgets/class_management_components.dart';
 import '../widgets/class_management_shimmer.dart';
 
 class ClassManagementScreen extends ConsumerStatefulWidget {
-  const ClassManagementScreen({super.key, required this.classId});
+  const ClassManagementScreen({super.key, required this.classData});
 
-  final String classId; // 🚨 Now takes ID instead of the full model!
+  final FlattenedClassData classData;
 
   @override
   ConsumerState<ClassManagementScreen> createState() => _ClassManagementScreenState();
@@ -19,13 +20,14 @@ class ClassManagementScreen extends ConsumerStatefulWidget {
 
 class _ClassManagementScreenState extends ConsumerState<ClassManagementScreen> {
   int _selectedTabIndex = 0; // 0: Overview, 1: Students, 2: Attendance, 3: Results
-
+  TeacherSubjectModel? _activeSubject;
+  
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     
-    final classDetailsAsync = ref.watch(teacherClassDetailsProvider(widget.classId));
+    final classDetailsAsync = ref.watch(teacherClassDetailsProvider(widget.classData.parentClass.id));
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -40,7 +42,7 @@ class _ClassManagementScreenState extends ConsumerState<ClassManagementScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              classDetailsAsync.valueOrNull?.name ?? 'Loading...', // Dynamic
+              widget.classData.displayClassName, // 🚨 "JSS 1 A"
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w700,
                 color: colorScheme.onPrimaryContainer,
@@ -48,24 +50,68 @@ class _ClassManagementScreenState extends ConsumerState<ClassManagementScreen> {
             ),
             if (classDetailsAsync.valueOrNull != null && classDetailsAsync.value!.subjects.isNotEmpty)
               Text(
-                classDetailsAsync.value!.subjects.first.name,
+                _activeSubject?.name ?? classDetailsAsync.value!.subjects.first.name,
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: colorScheme.outlineVariant,
                 ),
               ),
           ],
         ),
+        actions: [
+          if (classDetailsAsync.valueOrNull != null && classDetailsAsync.value!.subjects.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.only(right: Sizes.paddingM),
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(Sizes.radiusM),
+              ),
+              child: PopupMenuButton<TeacherSubjectModel>(
+                position: PopupMenuPosition.under,
+                icon: Icon(Icons.swap_vert, color: colorScheme.primary),
+                tooltip: 'Switch Subject',
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Sizes.radiusM)),
+                onSelected: (subject) {
+                  setState(() {
+                    _activeSubject = subject;
+                  });
+                },
+                itemBuilder: (context) {
+                  return classDetailsAsync.value!.subjects.map((sub) {
+                    final isSelected = (_activeSubject?.id ?? classDetailsAsync.value!.subjects.first.id) == sub.id;
+                    return PopupMenuItem(
+                      value: sub,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            sub.name,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                              color: isSelected ? colorScheme.primary : colorScheme.onSurface,
+                            ),
+                          ),
+                          if (isSelected) 
+                            Icon(Icons.check, size: 16, color: colorScheme.primary),
+                        ],
+                      ),
+                    );
+                  }).toList();
+                },
+              ),
+            ),
+        ],
       ),
-      body: AppRefreshIndicator(
-        onRefresh: () => ref.refresh(teacherClassDetailsProvider(widget.classId).future),
+      body:AppRefreshIndicator(
+        onRefresh: () => ref.refresh(teacherClassDetailsProvider(widget.classData.parentClass.id).future),
         child: classDetailsAsync.when(
-          skipLoadingOnRefresh: false,
           loading: () => const ClassDetailsShimmer(),
           error: (err, stack) => AppErrorWidget(
             message: err.toString(),
-            onRetry: () => ref.invalidate(teacherClassDetailsProvider(widget.classId)),
+            onRetry: () => ref.invalidate(teacherClassDetailsProvider(widget.classData.parentClass.id)),
           ),
           data: (classDetails) {
+            final currentSubject = _activeSubject ?? (classDetails.subjects.isNotEmpty ? classDetails.subjects.first : null);
+
             return Column(
               children: [
                 Expanded(
@@ -77,19 +123,33 @@ class _ClassManagementScreenState extends ConsumerState<ClassManagementScreen> {
                         Padding(
                           padding: const EdgeInsets.all(Sizes.paddingL),
                           child: ClassHeroCard(
-                            excellentStudentsCount: classDetails.topOfTheClass.where((e) =>e.percentage>75).length.toString(),
+                            excellentStudentsCount: classDetails.topOfTheClass.where((e) => e.percentage > 75).length.toString(),
                             attendancePercent: classDetails.attendancePercentage.toString(),
-                            totalStudents: classDetails.totalStudents.toString(),
+                            // 🚨 Total students for this specific arm
+                            totalStudents: widget.classData.arm.totalStudents.toString(), 
                           ),
                         ),
                         const SizedBox(height: Sizes.spaceXL),
                         _buildTabBar(theme),
                         const SizedBox(height: Sizes.spaceXL),
                         
-                        // Render the correct section component based on the selected tab
-                        if (_selectedTabIndex == 0) ClassOverviewSection(classDetails: classDetails),
-                        if (_selectedTabIndex == 1) ClassStudentsSection(classId: classDetails.id,subject: classDetails.subjects[0].name,), 
-                        if (_selectedTabIndex == 2) ClassAttendanceSection(classId: classDetails.id),
+                        if (_selectedTabIndex == 0) ClassOverviewSection(
+                          classDetails: classDetails,
+                          armId: widget.classData.arm.id,                     // 🚨 Pass the arm ID
+                          subjectId: currentSubject?.id ?? '',
+                        ),
+                        
+                        if (_selectedTabIndex == 1) ClassStudentsSection(
+                          classId: widget.classData.parentClass.id, // 🚨 From parent
+                          armId: widget.classData.arm.id,           // 🚨 From arm
+                          subject: currentSubject?.name ?? 'Unknown',
+                        ), 
+                        
+                        if (_selectedTabIndex == 2) ClassAttendanceSection(
+                          classId: widget.classData.parentClass.id,
+                          armId: widget.classData.arm.id,
+                          totalStudents: widget.classData.arm.totalStudents, // 🚨 Pass dynamic count
+                        ),
                         if (_selectedTabIndex == 3) const ClassResultsSection(),
                       ],
                     ),

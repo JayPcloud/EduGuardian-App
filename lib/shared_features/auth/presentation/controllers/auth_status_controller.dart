@@ -1,10 +1,16 @@
 import 'dart:async';
+import 'package:edu_guardian_app/shared_features/messaging/presentation/controllers/chat_detail_providers.dart';
+import 'package:edu_guardian_app/teachers_features/dashboard/presentation/controllers/teacher_dashboard_providers.dart';
+import 'package:edu_guardian_app/teachers_features/edu/presentation/controllers/my_classes_providers.dart';
+import 'package:edu_guardian_app/teachers_features/edu/presentation/controllers/teacher_attendance_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/enums/enums.dart';
 import '../../../../parents_features/dashboard/presentation/controllers/behavior_providers.dart';
 import '../../../../parents_features/dashboard/presentation/controllers/dashboard_providers.dart';
 import '../../../../parents_features/edu/presentation/controllers/academic_providers.dart';
 import '../../../../parents_features/edu/presentation/controllers/attendance_providers.dart';
+import '../../../messaging/presentation/controllers/chat_list_providers.dart';
+import '../../../messaging/services/pusher_service.dart';
 import '../../data/data_sources/auth_local_data_source.dart';
 import '../../data/models/user_model.dart';
 import '../../data/repositories/auth_repository.dart';
@@ -19,6 +25,7 @@ class AuthStatusNotifier extends AsyncNotifier<UserModel?> {
     final cachedUser = authLocalRepo.getCachedUser();
     // Background Refresh if a user is cached
     if (cachedUser != null) {
+      Future.microtask(() => ref.read(pusherServiceProvider).initGlobalChannel(cachedUser.id));
       Future.microtask(() => _validateSessionInBackground());
     }
 
@@ -96,18 +103,40 @@ class AuthStatusNotifier extends AsyncNotifier<UserModel?> {
     } catch (e) {
       // Ignore API errors, force local clear
     } finally {
+      ref.read(pusherServiceProvider).disconnect();
       await ref.read(authLocalDataSourceProvider).clearSession();
       state = const AsyncData(null);
-      // Invalidate other feature providers here!
-      //Dashboard
-      ref.invalidate(parentDashboardStatsProvider);
-      ref.invalidate(parentTimelineProvider);
-      //Academic Performance
-      ref.invalidate(academicPerformanceProvider);
-      //Attendance
-      ref.invalidate(parentAttendanceProvider);
-      //Behaviours
-      ref.invalidate(wardBehaviorProvider);
+      
+      if(ref.read(roleProvider)==UserRole.teacher){
+        //Dashboard
+        ref.invalidate(teacherDashboardStatsProvider);
+        ref.invalidate(teacherScheduleProvider);
+        //Attendance
+        ref.invalidate(teacherAttendanceMetricsProvider);
+        ref.invalidate(teacherAttendanceRecordsProvider);
+        ref.invalidate(teacherAttendanceMetricsProvider);
+        //classes
+        ref.invalidate(teacherClassesProvider);
+        ref.invalidate(filteredFlattenedClassesProvider);
+        
+      }else{
+        //Dashboard
+        ref.invalidate(parentDashboardStatsProvider);
+        ref.invalidate(parentTimelineProvider);
+        //Academic Performance
+        ref.invalidate(academicPerformanceProvider);
+        //Attendance
+        ref.invalidate(parentAttendanceProvider);
+        //Behaviours
+        ref.invalidate(wardBehaviorProvider);
+      }
+      
+      // Invalidate other shared feature providers here!
+      //Messaging reset
+      ref.invalidate(chatDetailProvider);
+      ref.invalidate(unifiedChatListProvider);
+      ref.invalidate(conversationsProvider);
+      
       
     }
   }

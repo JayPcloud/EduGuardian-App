@@ -16,6 +16,7 @@ final parentDashboardStatsProvider = FutureProvider<DashboardStatsModel>((ref) a
 final parentTimelineProvider = FutureProvider<List<TimelineItemModel>>((ref) async {
   await ref.watch(myWardsProvider.future);
   final studentId = ref.watch(activeWardProvider)?.id;
+  
   if (studentId == null) return [];
   
   return ref.read(dashboardRepositoryProvider).getTodayTimeline(studentId);

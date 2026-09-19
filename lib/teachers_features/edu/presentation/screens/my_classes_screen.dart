@@ -9,7 +9,6 @@ import '../../../../core/widgets/common/app_error_widget.dart';
 import '../../../../core/widgets/common/app_refresh_indicator.dart';
 import '../controllers/my_classes_providers.dart';
 
-
 class MyClassesScreen extends ConsumerWidget {
   const MyClassesScreen({super.key});
 
@@ -17,7 +16,9 @@ class MyClassesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final classesAsync = ref.watch(teacherClassesProvider);
-    final filteredClasses = ref.watch(filteredTeacherClassesProvider);
+    
+    // 🚨 Watch the new Flattened Provider
+    final filteredFlattenedClasses = ref.watch(filteredFlattenedClassesProvider);
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -29,7 +30,6 @@ class MyClassesScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('My Classes', style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w600, color: theme.colorScheme.onPrimaryContainer)),
-            // Dynamically show the counts, or a placeholder if loading
             Text(
               classesAsync.valueOrNull != null 
                   ? '${classesAsync.value!.counts.totalClasses} Classes · ${classesAsync.value!.counts.totalStudents} Students'
@@ -42,6 +42,7 @@ class MyClassesScreen extends ConsumerWidget {
       body: AppRefreshIndicator(
         onRefresh: () => ref.refresh(teacherClassesProvider.future),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Search Bar
             Padding(
@@ -55,7 +56,12 @@ class MyClassesScreen extends ConsumerWidget {
                 ),
               ),
             ),
-            const SizedBox(height: Sizes.spaceL),
+            const SizedBox(height: Sizes.spaceM),
+
+            // 🚨 NEW: Subject Filter Tabs
+            _buildSubjectTabs(context, ref),
+            
+            const SizedBox(height: Sizes.spaceM),
 
             // Classes List
             Expanded(
@@ -70,27 +76,32 @@ class MyClassesScreen extends ConsumerWidget {
                   onRetry: () => ref.invalidate(teacherClassesProvider),
                 ),
                 data: (_) {
-                  if (filteredClasses.isEmpty) {
+                  if (filteredFlattenedClasses.isEmpty) {
                     return const Center(child: Text("No classes found."));
                   }
                   
                   return ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: Sizes.paddingL),
-                    itemCount: filteredClasses.length,
+                    itemCount: filteredFlattenedClasses.length,
                     itemBuilder: (context, index) {
-                      final cls = filteredClasses[index];
-                      // Use the first subject if available, otherwise fallback
-                      final subjectName = cls.subjects.isNotEmpty ? cls.subjects.first.name : 'No Subject Assigned';
+                      final item = filteredFlattenedClasses[index];
+                      final parentClass = item.parentClass;
+                      final arm = item.arm;
+
+                      // Display the currently selected subject if filtering, or fallback to the first subject
+                      final activeSubject = ref.watch(selectedSubjectProvider);
+                      final displaySubject = activeSubject != null 
+                          ? activeSubject.name 
+                          : (parentClass.subjects.isNotEmpty ? parentClass.subjects.first.name : 'No Subject Assigned');
 
                       return GestureDetector(
-                        onTap: () => context.push(AppRoutes.classManagement, extra: cls.id,),
+                        onTap: () => context.push(AppRoutes.classManagement, extra: item,),
                         child: _buildClassCard(
                           theme: theme,
-                          initials: cls.initials,
-                          className: cls.name,
-                          subjectName: subjectName,
-                          totalStudents: cls.totalStudents.toString(),
-                          
+                          initials: parentClass.initials,
+                          className: item.displayClassName,
+                          subjectName: displaySubject,
+                          totalStudents: arm.totalStudents.toString(), // Uses the arm's specific student count
                         ),
                       );
                     },
@@ -99,6 +110,72 @@ class MyClassesScreen extends ConsumerWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  // 🚨 UI Builder for the Horizontal Subject Tabs
+  Widget _buildSubjectTabs(BuildContext context, WidgetRef ref) {
+    final uniqueSubjects = ref.watch(uniqueSubjectsProvider);
+    final selectedSubject = ref.watch(selectedSubjectProvider);
+    final theme = Theme.of(context);
+
+    if (uniqueSubjects.isEmpty) return const SizedBox.shrink();
+
+    return SizedBox(
+      height: 40,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: Sizes.paddingL),
+        children: [
+          // "All" Tab
+          _buildTabChip(
+            theme: theme,
+            label: 'All',
+            isSelected: selectedSubject == null,
+            onTap: () => ref.read(selectedSubjectProvider.notifier).state = null,
+          ),
+          
+          // Dynamic Subject Tabs
+          ...uniqueSubjects.map((subject) {
+            return _buildTabChip(
+              theme: theme,
+              label: subject.name,
+              isSelected: selectedSubject?.id == subject.id,
+              onTap: () => ref.read(selectedSubjectProvider.notifier).state = subject,
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabChip({
+    required ThemeData theme,
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(right: Sizes.spaceS),
+        padding: const EdgeInsets.symmetric(horizontal: Sizes.paddingM, vertical: Sizes.paddingXS),
+        decoration: BoxDecoration(
+          color: isSelected ? theme.colorScheme.primary : Colors.transparent,
+          border: Border.all(
+            color: isSelected ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
+          ),
+          borderRadius: BorderRadius.circular(Sizes.radiusXL),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: theme.textTheme.labelMedium?.copyWith(
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+            color: isSelected ? theme.colorScheme.onPrimary : theme.colorScheme.onSurfaceVariant,
+          ),
         ),
       ),
     );
@@ -171,7 +248,6 @@ class MyClassesScreen extends ConsumerWidget {
     );
   }
 }
-
 
 class TeacherClassesShimmer extends StatelessWidget {
   const TeacherClassesShimmer({super.key});

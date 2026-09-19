@@ -2,6 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../../dashboard/data/models/teacher_dashboard_models.dart';
+import '../../../dashboard/presentation/controllers/teacher_dashboard_providers.dart';
+import '../../data/models/teacher_class_model.dart';
 import '../../data/models/teachers_attendance_models.dart';
 import '../../data/repositories/teacher_attendance_repository.dart';
 import 'my_classes_providers.dart';
@@ -98,30 +101,37 @@ class TeacherAttendanceRecordsNotifier extends AutoDisposeAsyncNotifier<Paginate
   }
 
   // 🚨 EXTRACTED INIT LOGIC
-  Future<void> initializeFilters(String? initialClassId) async {
-    // If it's already initialized, do nothing
+  Future<void> initializeFilters(String? initialClassId, String? initialArmId) async {
     if (ref.read(attendanceFilterProvider) != null) return; 
 
     try {
-      final classesData = await ref.read(teacherClassesProvider.future);
+      final results = await Future.wait([
+        ref.read(teacherClassesProvider.future),
+        ref.read(activeAcademicSessionProvider.future),
+      ]);
+
+      final classesData = results[0] as TeacherClassesDataModel;
+      final sessionInfo = results[1] as ActiveAcademicSessionInfo;
+
       if (classesData.classes.isEmpty) return;
 
-      // Pre-select passed classId or default to the first one
       final selectedClass = initialClassId != null 
           ? classesData.classes.firstWhere((c) => c.id == initialClassId, orElse: () => classesData.classes.first)
           : classesData.classes.first;
 
+      // 🚨 Pre-select passed armId or default to the first one in this specific class
+      final selectedArmId = initialArmId ?? (selectedClass.arms.isNotEmpty ? selectedClass.arms.first.id : '');
+
       ref.read(attendanceFilterProvider.notifier).state = AttendanceFilterState(
         classId: selectedClass.id,
         className: selectedClass.name,
-        armId: selectedClass.arms.isNotEmpty ? selectedClass.arms.first.id : '',
+        armId: selectedArmId, // 🚨 Set active arm
         subjectName: selectedClass.subjects.isNotEmpty ? selectedClass.subjects.first.name : 'N/A',
         date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
-        term: "1", // TODO: Make dynamic from active session data
-        sessionId: "019f6cf7-16a4-71ea-b726-b93d79d63b4e", // TODO: Make dynamic
+        term: sessionInfo.term, 
+        sessionId: sessionInfo.sessionId, 
       );
     } catch (e) {
-      // Handle or log error gracefully if classes fail to load
       debugPrint("Failed to initialize filters: $e");
     }
   }
@@ -180,7 +190,7 @@ class TeacherAttendanceRecordsNotifier extends AutoDisposeAsyncNotifier<Paginate
 
 final attendanceDraftProvider = NotifierProvider<AttendanceDraftNotifier, Map<String, String>>(() => AttendanceDraftNotifier());
 
-final attendanceFilterProvider = StateProvider<AttendanceFilterState?>((ref) => null);
+final attendanceFilterProvider = StateProvider.autoDispose<AttendanceFilterState?>((ref) => null);
 final attendanceSearchProvider = StateProvider.autoDispose<String>((ref) => '');
 
 final teacherAttendanceRecordsProvider = AsyncNotifierProvider.autoDispose<TeacherAttendanceRecordsNotifier, PaginatedTeacherAttendanceModel>(() {
@@ -192,4 +202,19 @@ final teacherAttendanceMetricsProvider = FutureProvider.autoDispose<TeacherAtten
   final filter = ref.watch(attendanceFilterProvider);
   if (filter == null) throw 'Select a class to view metrics';
   return ref.read(teacherAttendanceRepositoryProvider).getMetrics(filter.toPayload());
+});
+
+final classWeeklyMetricsProvider = FutureProvider.family.autoDispose<List<WeeklyMetricModel>, ClassArmParam>((ref, param) async {
+  // Wait for the active academic session to load
+  final session = await ref.watch(activeAcademicSessionProvider.future);
+  
+  final payload = {
+    "academic_session_id": session.sessionId,
+    "term": session.term,
+    "date": DateFormat('yyyy-MM-dd').format(DateTime.now()),
+    "school_class_id": param.classId,
+    "class_arm_id": param.armId,
+  };
+
+  return ref.read(teacherAttendanceRepositoryProvider).getWeeklyMetrics(payload);
 });

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'hero_banner.dart';
 
 class AchievementBanner extends StatelessWidget {
-  const AchievementBanner({super.key});
+  const AchievementBanner({super.key, required this.totalBadges});
+
+  final String totalBadges;
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +28,7 @@ class AchievementBanner extends StatelessWidget {
                   children: [
                     Text('TOTAL BADGES', style: theme.textTheme.labelSmall?.copyWith(color: Colors.white.withValues(alpha: 0.7), fontWeight: FontWeight.w600)),
                     const SizedBox(height: 4),
-                    Text('12', style: theme.textTheme.headlineMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w600)),
+                    Text(totalBadges, style: theme.textTheme.headlineMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w600)),
                   ],
                 ),
               ),
@@ -221,6 +224,74 @@ class WeeklyLeaderboardCard extends StatelessWidget {
               ),
             );
           }),
+        ],
+      ),
+    );
+  }
+}
+
+
+
+class StudentBadgesSectionShimmer extends StatelessWidget {
+  const StudentBadgesSectionShimmer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.grey[850]! : Colors.grey[300]!;
+    final highlightColor = isDark ? Colors.grey[700]! : Colors.grey[100]!;
+    final shimmerColor = isDark ? Colors.black : Colors.white;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Banner Shimmer
+          Container(
+            width: double.infinity,
+            height: 120, // Approximate banner height
+            decoration: BoxDecoration(color: shimmerColor, borderRadius: BorderRadius.circular(Sizes.radiusL)),
+          ),
+          const SizedBox(height: Sizes.spaceL),
+          
+          // Next Milestone Title Shimmer
+          Container(width: 130, height: 18, color: shimmerColor),
+          const SizedBox(height: Sizes.spaceM),
+          
+          // Next Milestone Card Shimmer
+          Container(
+            width: double.infinity,
+            height: 90, // Approximate milestone card height
+            decoration: BoxDecoration(color: shimmerColor, borderRadius: BorderRadius.circular(Sizes.radiusL)),
+          ),
+          const SizedBox(height: Sizes.spaceL),
+
+          // Gallery Title Shimmer
+          Container(width: 120, height: 18, color: shimmerColor),
+          const SizedBox(height: Sizes.spaceM),
+
+          // Grid Shimmer (Simplified blocks for the full-page effect)
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: 4,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: Sizes.spaceM,
+              crossAxisSpacing: Sizes.spaceM,
+              mainAxisExtent: 220, 
+            ),
+            itemBuilder: (context, index) {
+              return Container(
+                decoration: BoxDecoration(
+                  color: shimmerColor,
+                  borderRadius: BorderRadius.circular(Sizes.radiusL),
+                ),
+              );
+            },
+          ),
         ],
       ),
     );

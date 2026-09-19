@@ -1,25 +1,33 @@
 class AnnouncementModel {
   final String id;
   final String title;
+  final String category;
+  final String urgencyLevel;
   final String body;
-  final DateTime createdAt;
+  final DateTime scheduledDate;
   final bool isRead;
 
   AnnouncementModel({
     required this.id,
     required this.title,
+    required this.category,
+    required this.urgencyLevel,
     required this.body,
-    required this.createdAt,
+    required this.scheduledDate,
     required this.isRead,
   });
 
   factory AnnouncementModel.fromJson(Map<String, dynamic> json) {
     return AnnouncementModel(
       id: json['id']?.toString() ?? '',
-      title: json['title'] ?? 'New Alert',
-      body: json['body'] ?? json['message'] ?? json['content'] ?? '', // Guessing common keys
-      createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
-      isRead: json['is_read'] ?? json['read'] ?? false, // Boolean flag for "Acknowledged"
+      title: json['title'] ?? 'New Announcement',
+      category: json['category'] ?? '',
+      urgencyLevel: json['urgency_level'] ?? 'normal',
+      // 🚨 Mapped message_content to your existing body variable
+      body: json['message_content'] ?? '', 
+      // 🚨 Replaced createdAt with scheduled_date as requested
+      scheduledDate: DateTime.tryParse(json['scheduled_date'] ?? '') ?? DateTime.now(),
+      isRead: json['is_read'] ?? false, 
     );
   }
 
@@ -28,8 +36,10 @@ class AnnouncementModel {
     return AnnouncementModel(
       id: id,
       title: title,
+      category: category,
+      urgencyLevel: urgencyLevel,
       body: body,
-      createdAt: createdAt,
+      scheduledDate: scheduledDate,
       isRead: isRead ?? this.isRead,
     );
   }

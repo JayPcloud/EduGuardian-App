@@ -113,7 +113,8 @@ class TimetableCard extends StatelessWidget {
                 Text(subject, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600, color: theme.colorScheme.onPrimaryContainer)),
                 Text(className, style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.outlineVariant)),
                 const SizedBox(height: Sizes.spaceM),
-                Row(
+                Wrap(
+                  runSpacing: Sizes.spaceXS,
                   children: [
                     // Duration Pill
                     Container(
@@ -129,7 +130,7 @@ class TimetableCard extends StatelessWidget {
                     ),
                     const SizedBox(width: Sizes.spaceS),
                     // Student Count Pill
-                    Container(
+                    if(studentCount!='-')Container(
                       padding: const EdgeInsets.symmetric(horizontal: Sizes.paddingS, vertical: 4),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),

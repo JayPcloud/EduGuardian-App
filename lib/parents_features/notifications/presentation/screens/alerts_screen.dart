@@ -128,7 +128,7 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
                 const SizedBox(height: Sizes.spaceM),
                 ...recent.map((alert) => AlertCard(
                   title: alert.title,
-                  time: _timeAgo(alert.createdAt),
+                  time: _timeAgo(alert.scheduledDate),
                   body: alert.body,
                 )),
                 const SizedBox(height: Sizes.spaceL),
@@ -140,7 +140,7 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
                 const SizedBox(height: Sizes.spaceM),
                 ...acknowledged.map((alert) => AlertCard(
                   title: alert.title,
-                  time: _timeAgo(alert.createdAt),
+                  time: _timeAgo(alert.scheduledDate),
                   body: alert.body,
                 )),
               ],

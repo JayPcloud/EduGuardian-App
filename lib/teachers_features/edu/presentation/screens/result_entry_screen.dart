@@ -11,7 +11,6 @@ import '../controllers/teacher_result_providers.dart';
 import '../widgets/academic_components.dart';
 import '../widgets/attendance_components.dart';
 
-
 class ResultEntryScreen extends ConsumerStatefulWidget {
   const ResultEntryScreen({super.key, this.classId, this.armId, this.subjectId});
   
@@ -35,7 +34,6 @@ class _ResultEntryScreenState extends ConsumerState<ResultEntryScreen> {
   }
 
   void _checkBeforeSubmit() {
-    // 🚨 Clean: Ask the controller for the business logic result
     final missingCount = ref.read(resultEntryControllerProvider.notifier).getMissingRecordsCount();
 
     if (missingCount > 0) {
@@ -84,6 +82,14 @@ class _ResultEntryScreenState extends ConsumerState<ResultEntryScreen> {
     final studentsAsync = ref.watch(resultEntryControllerProvider);
     final configsAsync = ref.watch(resultConfigsProvider);
 
+    // 🚨 Helper to get the current class safely for the dynamic dropdowns
+    final classesAsync = ref.watch(teacherClassesProvider);
+    final currentClasses = classesAsync.valueOrNull?.classes ?? [];
+    
+    final activeClass = filter != null && currentClasses.isNotEmpty
+        ? currentClasses.firstWhere((c) => c.id == filter.classId, orElse: () => currentClasses.first)
+        : null;
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
@@ -113,36 +119,51 @@ class _ResultEntryScreenState extends ConsumerState<ResultEntryScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: Sizes.paddingL, vertical: Sizes.spaceM),
                   child: Row(
                     children: [
-                      TeachersAttendanceFilterDropdown(
-                        label: 'CLASS',
-                        initialValue: filter.className,
-                        items: ref.watch(teacherClassesProvider).when(
-                            data: (data) => data.classes.map((c) => c.name).toList(), 
-                            error: (err, st)=>[], loading: ()=>[]),
-                        onSelected: (val) {
-                          final classes = ref.read(teacherClassesProvider).valueOrNull?.classes ?? [];
-                          final selectedCls = classes.firstWhere((c) => c.name == val);
-                          ref.read(resultFilterProvider.notifier).state = filter.copyWith(
-                            classId: selectedCls.id, className: selectedCls.name, classCategory: selectedCls.category,
-                            armId: selectedCls.arms.isNotEmpty ? selectedCls.arms.first.id : '',
-                            subjectName: selectedCls.subjects.isNotEmpty ? selectedCls.subjects.first.name : 'N/A',
-                            subjectId: selectedCls.subjects.isNotEmpty ? selectedCls.subjects.first.id : '',
-                          );
-                        },
+                      Expanded(
+                        child: TeachersAttendanceFilterDropdown(
+                          label: 'CLASS',
+                          initialValue: filter.className,
+                          items: currentClasses.map((c) => c.name).toList(), 
+                          onSelected: (val) {
+                            final selectedCls = currentClasses.firstWhere((c) => c.name == val);
+                            ref.read(resultFilterProvider.notifier).state = filter.copyWith(
+                              classId: selectedCls.id, className: selectedCls.name, classCategory: selectedCls.category,
+                              armId: selectedCls.arms.isNotEmpty ? selectedCls.arms.first.id : '',
+                              subjectName: selectedCls.subjects.isNotEmpty ? selectedCls.subjects.first.name : 'N/A',
+                              subjectId: selectedCls.subjects.isNotEmpty ? selectedCls.subjects.first.id : '',
+                            );
+                          },
+                        ),
                       ),
-                      const SizedBox(width: Sizes.spaceM),
-                      TeachersAttendanceFilterDropdown(
-                        label: 'SUBJECT',
-                        initialValue: filter.subjectName,
-                        items: ref.read(teacherClassesProvider).valueOrNull?.classes
-                            .firstWhere((c) => c.id == filter.classId, orElse: () => ref.read(teacherClassesProvider).value!.classes.first)
-                            .subjects.map((s) => s.name).toList() ?? [],
-                        onSelected: (val) {
-                          final classes = ref.read(teacherClassesProvider).valueOrNull?.classes ?? [];
-                          final currentCls = classes.firstWhere((c) => c.id == filter.classId);
-                          final subj = currentCls.subjects.firstWhere((s) => s.name == val);
-                          ref.read(resultFilterProvider.notifier).state = filter.copyWith(subjectName: subj.name, subjectId: subj.id);
-                        },
+                      const SizedBox(width: Sizes.spaceS),
+                      // 🚨 NEW DYNAMIC ARM FILTER
+                      Expanded(
+                        child: TeachersAttendanceFilterDropdown(
+                          label: 'ARM',
+                          initialValue: activeClass?.arms.firstWhere(
+                            (a) => a.id == filter.armId, 
+                            orElse: () => activeClass.arms.first
+                          ).name ?? '',
+                          items: activeClass?.arms.map((a) => a.name).toList() ?? [], 
+                          onSelected: (val) {
+                            if (activeClass == null) return;
+                            final selectedArm = activeClass.arms.firstWhere((a) => a.name == val);
+                            ref.read(resultFilterProvider.notifier).state = filter.copyWith(armId: selectedArm.id);
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: Sizes.spaceS),
+                      Expanded(
+                        child: TeachersAttendanceFilterDropdown(
+                          label: 'SUBJECT',
+                          initialValue: filter.subjectName,
+                          items: activeClass?.subjects.map((s) => s.name).toList() ?? [],
+                          onSelected: (val) {
+                            if (activeClass == null) return;
+                            final subj = activeClass.subjects.firstWhere((s) => s.name == val);
+                            ref.read(resultFilterProvider.notifier).state = filter.copyWith(subjectName: subj.name, subjectId: subj.id);
+                          },
+                        ),
                       ),
                     ],
                   ),
@@ -240,13 +261,11 @@ class _ResultEntryScreenState extends ConsumerState<ResultEntryScreen> {
                 ),
                 const SizedBox(width: Sizes.spaceM),
                 Expanded(
-                  child: Expanded(
                   child: PrimaryButton(
                     label: 'Submit',
                     isLoading: _isSubmitting,
-                    onPressed: _checkBeforeSubmit, // 🚨 Call the pre-check instead of _handleSubmit directly
+                    onPressed: _checkBeforeSubmit,
                   ),
-                ),
                 ),
               ],
             ),

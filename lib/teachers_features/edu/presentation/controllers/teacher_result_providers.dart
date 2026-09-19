@@ -3,8 +3,11 @@ import 'dart:async';
 import 'package:edu_guardian_app/teachers_features/edu/data/repositories/teacher_result_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../dashboard/data/models/teacher_dashboard_models.dart';
+import '../../../dashboard/presentation/controllers/teacher_dashboard_providers.dart';
 import '../../data/models/class_management_models.dart';
 import '../../data/models/result_models.dart';
+import '../../data/models/teacher_class_model.dart';
 import '../../data/repositories/teacher_classes_repositories.dart';
 import 'my_classes_providers.dart';
 
@@ -35,7 +38,7 @@ class ResultFilterState {
     );
   }
 }
-final resultFilterProvider = StateProvider<ResultFilterState?>((ref) => null);
+final resultFilterProvider = StateProvider.autoDispose<ResultFilterState?>((ref) => null);
 
 // 2. CONFIGS PROVIDER (Reacts to the selected class category)
 final resultConfigsProvider = FutureProvider.autoDispose<List<ResultConfigModel>>((ref) async {
@@ -92,7 +95,7 @@ class ResultEntryController extends AutoDisposeAsyncNotifier<List<TeacherClassSt
     final repo = ref.read(teacherResultRepository);
     final classRepo = ref.read(teacherClassesRepositoryProvider);
     // Fetch dependencies in parallel
-    final studentsFuture = classRepo.getClassStudents(filter.classId);
+    final studentsFuture = classRepo.getClassStudents(filter.classId, filter.armId);
     final configsFuture = ref.watch(resultConfigsProvider.future);
     final resultsFuture = repo.getExistingResults(
       classId: filter.classId, armId: filter.armId, subjectId: filter.subjectId, sessionId: filter.sessionId, term: filter.term,
@@ -113,7 +116,14 @@ class ResultEntryController extends AutoDisposeAsyncNotifier<List<TeacherClassSt
     if (ref.read(resultFilterProvider) != null) return; 
 
     try {
-      final classesData = await ref.read(teacherClassesProvider.future);
+      final results = await Future.wait([
+        ref.read(teacherClassesProvider.future),
+        ref.read(activeAcademicSessionProvider.future),
+      ]);
+
+      final classesData = results[0] as TeacherClassesDataModel;
+      final sessionInfo = results[1] as ActiveAcademicSessionInfo;
+      
       if (classesData.classes.isEmpty) return;
 
       final selectedClass = initClassId != null 
@@ -133,8 +143,10 @@ class ResultEntryController extends AutoDisposeAsyncNotifier<List<TeacherClassSt
         armId: selectedArmId,
         subjectId: selectedSubject?.id ?? '',
         subjectName: selectedSubject?.name ?? 'N/A',
-        term: "1", 
-        sessionId: "019f6cf7-16a4-71ea-b726-b93d79d63b4e", 
+        term: sessionInfo.term,           // 🚨 2. Dynamic term
+        sessionId: sessionInfo.sessionId,
+        // term: "1", 
+        // sessionId: "019f6cf7-16a4-71ea-b726-b93d79d63b4e", 
       );
     } catch (e) {
       print("Failed to initialize result filters: $e");

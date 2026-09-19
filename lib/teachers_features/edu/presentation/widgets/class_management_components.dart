@@ -3,6 +3,7 @@ import 'package:edu_guardian_app/core/router/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../../../core/constants/app_decorations.dart';
@@ -10,7 +11,9 @@ import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/utility/helper_functions.dart';
 import '../../../../core/widgets/common/app_error_widget.dart';
 import '../../data/models/teacher_class_model.dart';
+import '../../data/models/teachers_attendance_models.dart';
 import '../controllers/my_classes_providers.dart';
+import '../controllers/teacher_attendance_provider.dart';
 import 'edit_grade_dialog.dart';
 
 // --- HERO CARD --------------------------------------------------///
@@ -116,14 +119,20 @@ class ClassHeroCard extends StatelessWidget {
 
 // --- OVERVIEW SECTION --------------------------------------------------///
 class ClassOverviewSection extends StatelessWidget {
-  final TeacherClassModel classDetails; // 🚨 Pass in the data
+  final TeacherClassModel classDetails;
+  final String armId;     
+  final String subjectId;
 
-  const ClassOverviewSection({super.key, required this.classDetails});
+  const ClassOverviewSection({super.key, required this.classDetails,required this.armId,required this.subjectId,});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
+    final navExtra = {
+      'classId': classDetails.id,
+      'armId': armId,
+      'subjectId': subjectId,
+    };
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: Sizes.paddingL),
       child: Column(
@@ -134,10 +143,38 @@ class ClassOverviewSection extends StatelessWidget {
             spacing: Sizes.spaceXS,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _buildQuickAction('Attendance', LucideIcons.edit3, const Color(0xFF004D99), theme, isOutlined: true),
-              _buildQuickAction('Results', LucideIcons.fileText, const Color(0xFF00ACC1), theme, isOutlined: true),
-              _buildQuickAction('Message', LucideIcons.messageSquare, const Color(0xFF8E24AA), theme, isOutlined: true),
-              _buildQuickAction('Timetable', LucideIcons.calendar, const Color(0xFF43A047), theme, isOutlined: true),
+              _buildQuickAction(
+                'Attendance', 
+                LucideIcons.edit3, 
+                const Color(0xFF004D99), 
+                theme, 
+                isOutlined: true,
+                onTap: () => context.go(AppRoutes.attendance, extra: navExtra), // Passes map
+              ),
+              _buildQuickAction(
+                'Results', 
+                LucideIcons.fileText, 
+                const Color(0xFF00ACC1), 
+                theme, 
+                isOutlined: true,
+                onTap: () => context.push(AppRoutes.resultEntry, extra: navExtra), // 🚨 Passes map directly to the result entry screen!
+              ),
+              _buildQuickAction(
+                'Message', 
+                LucideIcons.messageSquare, 
+                const Color(0xFF8E24AA), 
+                theme, 
+                isOutlined: true,
+                onTap: () {}, // Adjust route when ready
+              ),
+              _buildQuickAction(
+                'Timetable', 
+                LucideIcons.calendar, 
+                const Color(0xFF43A047), 
+                theme, 
+                isOutlined: true,
+                onTap: () {}, // Adjust route when ready
+              ),
             ],
           ),
           const SizedBox(height: Sizes.spaceXXL),
@@ -267,61 +304,147 @@ class ClassOverviewSection extends StatelessWidget {
 
 
 // --- ATTENDANCE SECTION -------------------------------------------------------------///
-class ClassAttendanceSection extends StatelessWidget {
-  const ClassAttendanceSection({super.key, this.classId});
-  final String? classId;
+class ClassAttendanceSection extends ConsumerWidget {
+  final String classId;
+  final String armId; 
+  final int totalStudents; // 🚨 Passed down from ClassManagementScreen
+
+  const ClassAttendanceSection({
+    super.key, 
+    required this.classId, 
+    required this.armId, 
+    required this.totalStudents
+  });
+
+  // Helper for dynamic date formatting
+  String _formatRecentDate(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final dateToCompare = DateTime(date.year, date.month, date.day);
+    final diff = today.difference(dateToCompare).inDays;
+
+    if (diff == 1) return 'Yesterday';
+    return DateFormat('EEE, MMM d').format(date); 
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    
+    // 🚨 Fetch the metrics!
+    final metricsAsync = ref.watch(classWeeklyMetricsProvider((classId: classId, armId: armId)));
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal:Sizes.paddingL),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Top Card
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(Sizes.paddingL),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainer,
-              borderRadius: BorderRadius.circular(Sizes.radiusL),
-              border: Border.all(color: Colors.black12.withValues(alpha: 0.1)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Today\'s attendance', style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onSurface)),
-                const SizedBox(height: 4),
-                Text('Not submitted', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
-                const SizedBox(height: Sizes.spaceXS),
-                Text('32 students to mark', style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onSurface)),
-                const SizedBox(height: Sizes.spaceL),
-                ElevatedButton.icon(
-                  onPressed: ()=> context.go( AppRoutes.attendance, extra: classId),
-                  icon: const Icon(LucideIcons.edit3, size: 14, color: Colors.white),
-                  label: Text('Mark Attendance', style: theme.textTheme.labelMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w600)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF004D99),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Sizes.radiusXL)),
-                  ),
-                )
-              ],
-            ),
-          ),
-          const SizedBox(height: Sizes.spaceXL),
+      padding: const EdgeInsets.symmetric(horizontal: Sizes.paddingL),
+      child: metricsAsync.when(
+        loading: () => const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator())),
+        error: (err, stack) => Center(child: Text('Failed to load metrics: $err')),
+        data: (metrics) {
+          final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
           
-          // Recent Sessions
-          Text('Recent Sessions', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-          const SizedBox(height: Sizes.spaceM),
-          _buildRecentSessionRow('Yesterday', '32 present  0 absent', theme),
-          Divider(height: 1,color: theme.colorScheme.outline.withValues(alpha: 0.7)), 
-          _buildRecentSessionRow('Mon, Nov 18', '32 present  0 absent', theme),
-          Divider(height: 1,color: theme.colorScheme.outline.withValues(alpha: 0.7)), 
-          _buildRecentSessionRow('Fri, Nov 15', '30 present  2 absent', theme),
-          Divider(height: 1,color: theme.colorScheme.outline.withValues(alpha: 0.7)),
-        ],
+          // 🚨 1. Check if TODAY has been marked
+          final todayMetric = metrics.firstWhere(
+            (m) => DateFormat('yyyy-MM-dd').format(m.date) == todayStr, 
+            orElse: () => WeeklyMetricModel(date: DateTime.now(), dayName: '', present: 0, absent: 0, late: 0, excused: 0)
+          );
+          final bool isMarkedToday = todayMetric.totalMarked > 0;
+
+          // 🚨 2. Filter for recent sessions (Not today, must have records, sorted newest first)
+          final pastMetrics = metrics.where((m) {
+            final mDateStr = DateFormat('yyyy-MM-dd').format(m.date);
+            return mDateStr != todayStr && m.totalMarked > 0;
+          }).toList();
+          
+          // Sort descending and take top 3
+          pastMetrics.sort((a, b) => b.date.compareTo(a.date));
+          final recentSessions = pastMetrics.take(3).toList();
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Top Card
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(Sizes.paddingL),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainer,
+                  borderRadius: BorderRadius.circular(Sizes.radiusL),
+                  border: Border.all(color: Colors.black12.withValues(alpha: 0.1)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Today\'s attendance', style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onSurface)),
+                    const SizedBox(height: 4),
+                    Text(
+                      isMarkedToday ? 'Attendance Marked' : 'Not submitted', 
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700, 
+                        color: isMarkedToday ? const Color(0xFF00BFA5) : theme.colorScheme.onSurface
+                      )
+                    ),
+                    const SizedBox(height: Sizes.spaceXS),
+                    Text(
+                      isMarkedToday ? 'Records saved securely' : '$totalStudents students to mark', 
+                      style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onSurface)
+                    ),
+                    const SizedBox(height: Sizes.spaceL),
+                    ElevatedButton.icon(
+                      // 🚨 Disable button if already marked, OR pass both IDs correctly if active
+                      onPressed: isMarkedToday ? null : () => context.go(
+                        AppRoutes.attendance, 
+                        extra: {
+                          'classId': classId,
+                          'armId': armId,
+                        }
+                      ),
+                      icon: Icon(isMarkedToday ? LucideIcons.checkCircle : LucideIcons.edit3, size: 14, color: Colors.white),
+                      label: Text(
+                        isMarkedToday ? 'Completed' : 'Mark Attendance', 
+                        style: theme.textTheme.labelMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w600)
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isMarkedToday ? Colors.grey : const Color(0xFF004D99),
+                        disabledBackgroundColor: Colors.grey.withValues(alpha: 0.6), // Modern disabled look
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Sizes.radiusXL)),
+                      ),
+                    )
+                  ],
+                ),
+              ),
+              const SizedBox(height: Sizes.spaceXL),
+              
+              // Recent Sessions
+              Text('Recent Sessions', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+              const SizedBox(height: Sizes.spaceM),
+              
+              if (recentSessions.isEmpty)
+                Text('No recent attendance records found.', style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.outlineVariant))
+              else
+                Column(
+                  children: recentSessions.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final session = entry.value;
+                    final isLast = index == recentSessions.length - 1;
+                    
+                    return Column(
+                      children: [
+                        _buildRecentSessionRow(
+                          _formatRecentDate(session.date), 
+                          '${session.present} present  ${session.absent} absent', 
+                          theme
+                        ),
+                        if (!isLast) Divider(height: 1, color: theme.colorScheme.outline.withValues(alpha: 0.7)),
+                      ],
+                    );
+                  }).toList(),
+                ),
+                
+              const SizedBox(height: Sizes.spaceXXL),
+            ],
+          );
+        }
       ),
     );
   }
@@ -331,7 +454,7 @@ class ClassAttendanceSection extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Padding(
-          padding: const EdgeInsets.only(bottom:Sizes.paddingS, top: Sizes.paddingS),
+          padding: const EdgeInsets.only(bottom: Sizes.paddingS, top: Sizes.paddingS),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -346,7 +469,6 @@ class ClassAttendanceSection extends StatelessWidget {
     );
   }
 }
-
 
 
 
@@ -434,13 +556,13 @@ class ClassResultsSection extends StatelessWidget {
 
 // --- STUDENTS SECTION ------------------------------------------------------------///
 class ClassStudentsSection extends ConsumerWidget {
-  final String classId, subject; // 🚨 Accepts the class ID to fetch data
-  const ClassStudentsSection({super.key, required this.classId, required this.subject});
+  final String classId, armId, subject; // 🚨 Accepts the class ID to fetch data
+  const ClassStudentsSection({super.key, required this.classId, required this.armId, required this.subject});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final studentsAsync = ref.watch(classStudentsProvider(classId));
+    final studentsAsync = ref.watch(classStudentsProvider((classId: classId, armId: armId)));
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: Sizes.paddingL),
@@ -450,7 +572,7 @@ class ClassStudentsSection extends ConsumerWidget {
         error: (err, stack) => AppErrorWidget(
           message: err.toString(),
           onlyErrorMessage: true,
-          onRetry: () => ref.invalidate(classStudentsProvider(classId)),
+          onRetry: () => ref.invalidate(classStudentsProvider((classId: classId, armId: armId))),
         ),
         data: (students) {
           if (students.isEmpty) {

@@ -15,8 +15,13 @@ class TeacherClassesRemoteDataSource {
     return response.data;
   }
 
-  Future<Map<String, dynamic>> getClassStudents(String classId) async {
-    final response = await _client.dio.get('teacher/classes/$classId/students');
+  Future<Map<String, dynamic>> getClassStudents(String classId, String armId) async {
+    final response = await _client.dio.get(
+      'teacher/classes/$classId/students',
+      queryParameters: {
+        'class_arm_id': armId, // 🚨 Now properly sending the arm ID!
+      }
+    );
     return response.data;
   }
 

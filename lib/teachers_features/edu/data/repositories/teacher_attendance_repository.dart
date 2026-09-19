@@ -25,6 +25,16 @@ class TeacherAttendanceRepository {
     }
   }
 
+  Future<List<WeeklyMetricModel>> getWeeklyMetrics(Map<String, dynamic> payload) async {
+    try {
+      final response = await remote.getWeeklyMetrics(payload);
+      final List data = response['data'] ?? [];
+      return data.map((e) => WeeklyMetricModel.fromJson(e)).toList();
+    } catch (e) {
+      throw ErrorHandler.parse(e).message;
+    }
+  }
+
   Future<void> markAttendance(Map<String, dynamic> payload) async {
     try {
       await remote.markAttendance(payload);

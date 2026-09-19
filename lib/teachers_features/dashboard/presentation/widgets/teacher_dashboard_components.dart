@@ -302,17 +302,17 @@ class ScheduleCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('$subject $className', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, color: theme.colorScheme.onPrimaryContainer)),
+                Text('$subject  $className', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, color: theme.colorScheme.onPrimaryContainer)),
                 const SizedBox(height: 4),
                 FittedBox(
-                  child: Row(
-                    children: [
-                      Icon(LucideIcons.users, size: 14, color: theme.colorScheme.outlineVariant),
-                      const SizedBox(width: 4),
-                      Text(details, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.outlineVariant)),
-                    ],
-                  ),
-                )
+                    child: Row(
+                      children: [
+                        Icon(LucideIcons.clock, size: 14, color: theme.colorScheme.outlineVariant),
+                        const SizedBox(width: 4),
+                        Text(details, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.outlineVariant)),
+                      ],
+                    ),
+                  )
               ],
             ),
           ),

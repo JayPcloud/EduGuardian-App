@@ -127,6 +127,7 @@ class HomeHeader extends ConsumerWidget {
 
   Widget _buildChildMenuItem(WardModel ward, String activeWardId, Color avatarColor, ThemeData theme) {
     final isSelected = activeWardId == ward.id;
+    final className = '${ward.schoolClass!.name} ${ward.classArm?.name ?? ''}'.trim();
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: Sizes.paddingM, vertical: Sizes.paddingS),
@@ -152,7 +153,7 @@ class HomeHeader extends ConsumerWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                '${ward.classCategory} — Term ${ward.term}', 
+                '$className - Term ${ward.term}', 
                 style: theme.textTheme.labelSmall?.copyWith(color: const Color(0xFF6B8DB0))
               ),
             ],
